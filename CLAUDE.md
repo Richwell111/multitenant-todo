@@ -275,6 +275,12 @@ All database changes must use version-controlled migration files.
 
 Do not manually change production database tables.
 
+### Current backend direction
+
+Supabase Cloud only.
+
+Do not add local Supabase, Docker, self-hosted Supabase, offline mode, or cloud/local synchronization unless the PRD is explicitly changed.
+
 ---
 
 ## Extension Rules
