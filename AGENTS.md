@@ -43,10 +43,14 @@ Do not add:
 - `/login` is Company login.
 - `/register` is licence-based registration.
 - `/admin` is the Platform Admin area.
+- `/workspace/:slug` is the Company workspace during local development.
 - There is no landing page.
 - There is no Company Owner concept.
 - There is one account per Company in Version 1.
-- Company workspaces use subdomains.
+- Company workspaces use subdomains in production, for example
+  `alpha.todoapp.com`.
+- Local development uses one origin: `http://localhost:5173`. Do not use
+  `alpha.localhost`, `lvh.me`, or any other local domain alias.
 - One codebase and one deployment serve all Companies.
 
 ## Architecture
@@ -93,10 +97,13 @@ Do not implement future phases early.
 
 ## Current Phase
 
-Phase 2: Database specification review.
+Phase 4: Authentication specification review.
 
-Do not create migrations or edit application source code until
-`specs/002-database/spec.md` is approved.
+Phases 1 to 3 are implemented. `/login` is still the Phase 1 placeholder and
+does not sign anyone in; real authentication is Phase 4.
+
+Do not write authentication code until `specs/004-authentication/spec.md` is
+approved.
 
 ## Git
 

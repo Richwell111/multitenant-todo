@@ -81,21 +81,24 @@ There are no Company members, teams, roles, or invitations.
 → Platform Admin area
 ```
 
-Company workspaces use subdomains.
-
-Examples:
-
-```text
-alpha.localhost:3000
-beta.localhost:3000
-```
-
-In production:
+Company workspaces use subdomains in production:
 
 ```text
 alpha.todoapp.com
 beta.todoapp.com
 ```
+
+During local development, Company workspaces use a path on the single local
+origin instead of a subdomain:
+
+```text
+http://localhost:5173/workspace/alpha
+http://localhost:5173/workspace/beta
+```
+
+This keeps the login session on one browser origin locally, so no cross-origin
+session handling is needed during development. The workspace slug is a routing
+value in both forms; it is never the security boundary.
 
 ---
 
@@ -167,7 +170,7 @@ alpha.todoapp.com
 During local development:
 
 ```text
-alpha.localhost:3000
+http://localhost:5173/workspace/alpha
 ```
 
 The system must reject registration when:
@@ -190,12 +193,18 @@ Company Email
 Password
 ```
 
-After login, the system redirects the Company to its workspace subdomain.
+After login, the system redirects the Company to its workspace.
 
-Example:
+In production this is the Company subdomain:
 
 ```text
 alpha.todoapp.com
+```
+
+Locally it is the workspace path on the same origin:
+
+```text
+http://localhost:5173/workspace/alpha
 ```
 
 A Company must not be able to access another Company’s workspace.
@@ -498,12 +507,15 @@ gamma.todoapp.com
 Use:
 
 ```text
-localhost:3000/login
-localhost:3000/register
-localhost:3000/admin
-alpha.localhost:3000
-beta.localhost:3000
+http://localhost:5173/login
+http://localhost:5173/register
+http://localhost:5173/admin
+http://localhost:5173/workspace/alpha
+http://localhost:5173/workspace/beta
 ```
+
+Local development uses one origin only. Do not use subdomain hosts, `lvh.me`, or
+any other local domain alias.
 
 Create two test Companies:
 
@@ -590,6 +602,7 @@ Development should be simple and phase-based.
 * Vercel deployment
 * Supabase Cloud
 * Company subdomains
+* Production cross-subdomain session handling
 
 ---
 

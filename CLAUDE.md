@@ -77,21 +77,30 @@ The required routes are:
 
 /admin
 → Platform Admin area
+
+/workspace/:slug
+→ Company workspace (local development)
 ```
 
-Company workspaces use subdomains:
-
-```text
-alpha.localhost:3000
-beta.localhost:3000
-```
-
-Production examples:
+Company workspaces use subdomains in production:
 
 ```text
 alpha.todoapp.com
 beta.todoapp.com
 ```
+
+Local development uses one origin only:
+
+```text
+http://localhost:5173/login
+http://localhost:5173/register
+http://localhost:5173/admin
+http://localhost:5173/workspace/alpha
+```
+
+Do not use `alpha.localhost`, `lvh.me`, or any other local domain alias. The
+single local origin keeps the login session usable without cross-origin session
+handling.
 
 There is:
 
@@ -395,33 +404,35 @@ Phase 8: Deployment
 The current phase is:
 
 ```text
-Phase 1: Foundation
+Phase 4: Authentication specification review
 ```
 
-Phase 1 includes only:
+Phases 1 to 3 are implemented. Phase 3 also received one approved correction:
+the Workspace Slug auto-fills from Company Name and stays editable.
 
-* React and TypeScript foundation;
-* application routing;
-* `/` redirect to `/login`;
-* placeholder `/login`;
-* placeholder `/register`;
-* placeholder `/admin`;
-* simple folder structure;
-* base testing configuration;
-* lint, type-check, test and build commands.
+`/login` is still the Phase 1 placeholder. It does not sign anyone in. That is
+expected: real authentication is Phase 4 work.
 
-Phase 1 must not include:
+Do not write authentication code until `specs/004-authentication/spec.md` is
+approved.
 
-* real authentication;
-* database tables;
-* Supabase migrations;
-* licence generation;
-* Company registration logic;
-* Todo CRUD;
-* real Platform Admin functionality;
-* extensions;
-* diagnostics integrations;
-* production deployment.
+Phase 4 includes:
+
+* Company login at `/login`;
+* Platform Admin login state at `/admin`;
+* `signInWithPassword` with Supabase's normal browser session persistence;
+* session restoration and logout;
+* Platform Admin versus Company account detection;
+* route guards, including suspended Companies;
+* a placeholder protected `/workspace/:slug` route.
+
+Phase 4 must not include:
+
+* password reset or recovery;
+* custom cookie or token storage;
+* Todo CRUD or the dashboard;
+* Platform Admin listings, suspension, or reactivation UI;
+* extensions, diagnostics, or deployment.
 
 ---
 
