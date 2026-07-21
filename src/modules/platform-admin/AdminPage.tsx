@@ -1,169 +1,34 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../auth/authContext'
 import { AUTH_MESSAGES } from '../auth/authRepository'
 import { evaluateAdminAccess, LoginValidationError } from '../auth/authService'
 import { LicenceApiError } from '../licensing/licenceRepository'
-import { LicenceValidationError, submitLicence } from '../licensing/licenceService'
+import { LicenceValidationError } from '../licensing/licenceService'
+import { changeCompanyStatus, generateLicence, loadDashboard, type PlatformAdminSnapshot } from './platformAdminService'
 
 function AdminLoginForm() {
-  const { signIn } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [formError, setFormError] = useState('')
-  const [pending, setPending] = useState(false)
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (pending) return
-    setPending(true)
-    setFieldErrors({})
-    setFormError('')
-    try {
-      await signIn({ email, password })
-      setPassword('')
-    } catch (error) {
-      if (error instanceof LoginValidationError) setFieldErrors(error.fieldErrors)
-      setFormError(error instanceof Error ? error.message : AUTH_MESSAGES.NETWORK_ERROR)
-    } finally {
-      setPending(false)
-    }
-  }
-
-  return (
-    <section>
-      <h2>Platform Admin Sign In</h2>
-      <form onSubmit={handleSubmit} noValidate>
-        <div>
-          <label htmlFor="admin-email">Email</label>
-          <input
-            id="admin-email"
-            name="email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            aria-invalid={Boolean(fieldErrors.email)}
-            autoComplete="username"
-          />
-          {fieldErrors.email && <p>{fieldErrors.email}</p>}
-        </div>
-        <div>
-          <label htmlFor="admin-password">Password</label>
-          <input
-            id="admin-password"
-            name="password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            aria-invalid={Boolean(fieldErrors.password)}
-            autoComplete="current-password"
-          />
-          {fieldErrors.password && <p>{fieldErrors.password}</p>}
-        </div>
-        {formError && <p role="alert">{formError}</p>}
-        <button type="submit" disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button>
-      </form>
-    </section>
-  )
+  const { signIn } = useAuth(); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({}); const [formError, setFormError] = useState(''); const [pending, setPending] = useState(false)
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); if (pending) return; setPending(true); setFieldErrors({}); setFormError(''); try { await signIn({ email, password }); setPassword('') } catch (error) { if (error instanceof LoginValidationError) setFieldErrors(error.fieldErrors); setFormError(error instanceof Error ? error.message : AUTH_MESSAGES.NETWORK_ERROR) } finally { setPending(false) } }
+  return <section><h2>Platform Admin Sign In</h2><form onSubmit={handleSubmit} noValidate><label htmlFor="admin-email">Email</label><input id="admin-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(fieldErrors.email)} autoComplete="username" />{fieldErrors.email && <p>{fieldErrors.email}</p>}<label htmlFor="admin-password">Password</label><input id="admin-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(fieldErrors.password)} autoComplete="current-password" />{fieldErrors.password && <p>{fieldErrors.password}</p>}{formError && <p role="alert">{formError}</p>}<button type="submit" disabled={pending}>{pending ? 'Signing in...' : 'Sign in'}</button></form></section>
 }
 
-function GenerateLicenceForm() {
-  const [companyName, setCompanyName] = useState('')
-  const [expiryDate, setExpiryDate] = useState('')
-  const [status, setStatus] = useState<'available' | 'revoked'>('available')
-  const [result, setResult] = useState<Awaited<ReturnType<typeof submitLicence>> | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [formError, setFormError] = useState('')
-  const [pending, setPending] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (pending) return
-    setPending(true)
-    setResult(null)
-    setCopied(false)
-    setFieldErrors({})
-    setFormError('')
-    try {
-      setResult(await submitLicence({ companyName, expiryDate, status }))
-    } catch (error) {
-      if (error instanceof LicenceValidationError || error instanceof LicenceApiError) setFieldErrors(error.fieldErrors)
-      setFormError(error instanceof Error ? error.message : 'The licence could not be generated.')
-    } finally {
-      setPending(false)
-    }
-  }
-
-  async function copyKey() {
-    if (!result) return
-    if (navigator.clipboard) await navigator.clipboard.writeText(result.licenceKey)
-    setCopied(true)
-  }
-
-  return (
-    <>
-      <h2>Generate Licence</h2>
-      <form onSubmit={handleSubmit} noValidate>
-        <label htmlFor="licence-company-name">Company Name</label>
-        <input id="licence-company-name" value={companyName} onChange={(event) => setCompanyName(event.target.value)} />
-        {fieldErrors.companyName && <p>{fieldErrors.companyName}</p>}
-        <label htmlFor="licence-expiry-date">Expiry Date</label>
-        <input id="licence-expiry-date" type="date" value={expiryDate} onChange={(event) => setExpiryDate(event.target.value)} />
-        {fieldErrors.expiryDate && <p>{fieldErrors.expiryDate}</p>}
-        <label htmlFor="licence-status">Status</label>
-        <select id="licence-status" value={status} onChange={(event) => setStatus(event.target.value as 'available' | 'revoked')}>
-          <option value="available">Available</option>
-          <option value="revoked">Revoked</option>
-        </select>
-        {formError && <p role="alert">{formError}</p>}
-        <button type="submit" disabled={pending}>{pending ? 'Generating…' : 'Generate Licence'}</button>
-      </form>
-      {result && (
-        <section aria-live="polite">
-          <h2>Licence generated</h2>
-          <p>Copy this key now. It cannot be recovered later.</p>
-          <code>{result.licenceKey}</code>
-          <button type="button" onClick={copyKey}>{copied ? 'Copied' : 'Copy key'}</button>
-          <button type="button" onClick={() => setResult(null)}>Dismiss</button>
-        </section>
-      )}
-    </>
-  )
+function GenerateLicenceForm({ account, onGenerated }: { account: Extract<NonNullable<ReturnType<typeof useAuth>['account']>, { kind: 'platform-admin' }>; onGenerated: () => void }) {
+  const [companyName, setCompanyName] = useState(''); const [expiryDate, setExpiryDate] = useState(''); const [result, setResult] = useState<{ licenceKey: string } | null>(null); const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({}); const [formError, setFormError] = useState(''); const [pending, setPending] = useState(false); const [copied, setCopied] = useState(false)
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); if (pending) return; setPending(true); setResult(null); setCopied(false); setFieldErrors({}); setFormError(''); try { const generated = await generateLicence(account, { companyName, expiryDate, status: 'available' }); setResult(generated); onGenerated() } catch (error) { if (error instanceof LicenceValidationError || error instanceof LicenceApiError) setFieldErrors(error.fieldErrors); setFormError(error instanceof Error ? error.message : 'The licence could not be generated.') } finally { setPending(false) } }
+  async function copyKey() { if (!result) return; if (navigator.clipboard) await navigator.clipboard.writeText(result.licenceKey); setCopied(true) }
+  return <section><h2>Generate Licence</h2><form onSubmit={handleSubmit} noValidate><label htmlFor="licence-company-name">Company Name</label><input id="licence-company-name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} />{fieldErrors.companyName && <p>{fieldErrors.companyName}</p>}<label htmlFor="licence-expiry-date">Expiry Date</label><input id="licence-expiry-date" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />{fieldErrors.expiryDate && <p>{fieldErrors.expiryDate}</p>}{formError && <p role="alert">{formError}</p>}<button type="submit" disabled={pending}>{pending ? 'Generating...' : 'Generate Licence'}</button></form>{result && <section aria-live="polite"><h3>Licence generated</h3><p>Copy this key now. It cannot be recovered later.</p><code>{result.licenceKey}</code><button type="button" onClick={copyKey}>{copied ? 'Copied' : 'Copy key'}</button><button type="button" onClick={() => setResult(null)}>Dismiss</button></section>}</section>
 }
 
-function AdminPage() {
-  const { status, account, signOut } = useAuth()
-
-  if (status === 'loading') {
-    return (
-      <main>
-        <h1>Platform Admin</h1>
-        <p>Checking your session…</p>
-      </main>
-    )
-  }
-
-  const access = evaluateAdminAccess(account)
-
-  return (
-    <main>
-      <h1>Platform Admin</h1>
-      {access === 'unauthenticated' && <AdminLoginForm />}
-      {access === 'ADMIN_ONLY' && (
-        <>
-          <p role="alert">{AUTH_MESSAGES.ADMIN_ONLY}</p>
-          <button type="button" onClick={() => void signOut()}>Log out</button>
-        </>
-      )}
-      {access === 'allowed' && (
-        <>
-          <button type="button" onClick={() => void signOut()}>Log out</button>
-          <GenerateLicenceForm />
-        </>
-      )}
-    </main>
-  )
+function AdminDashboard({ account, signOut }: { account: Extract<NonNullable<ReturnType<typeof useAuth>['account']>, { kind: 'platform-admin' }>; signOut: () => Promise<void> }) {
+  const [snapshot, setSnapshot] = useState<PlatformAdminSnapshot | null>(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [actionError, setActionError] = useState(''); const [success, setSuccess] = useState(''); const [pendingId, setPendingId] = useState('')
+  const refresh = useCallback(async () => { setLoading(true); setError(''); try { setSnapshot(await loadDashboard(account)) } catch (e) { setError(e instanceof Error ? e.message : 'Unable to load Platform Admin data') } finally { setLoading(false) } }, [account])
+  useEffect(() => { void Promise.resolve().then(() => refresh()) }, [refresh])
+  async function toggle(company: PlatformAdminSnapshot['companies'][number]) { const next = company.status === 'active' ? 'suspended' : 'active'; if (!window.confirm(`Are you sure you want to ${next === 'suspended' ? 'suspend' : 'reactivate'} ${company.name}?`)) return; setPendingId(company.id); setActionError(''); setSuccess(''); try { await changeCompanyStatus(account, company, next); setSuccess(`Company ${next === 'suspended' ? 'suspended' : 'reactivated'}.`); await refresh() } catch (e) { setActionError(e instanceof Error ? e.message : 'Unable to update Company status') } finally { setPendingId('') } }
+  if (loading && !snapshot) return <><button type="button" onClick={() => void signOut()}>Log out</button><p>Loading Platform Admin data...</p><GenerateLicenceForm account={account} onGenerated={() => void refresh()} /></>
+  if (error && !snapshot) return <><button type="button" onClick={() => void signOut()}>Log out</button><section><p role="alert">{error}</p><button type="button" onClick={() => void refresh()}>Retry</button></section><GenerateLicenceForm account={account} onGenerated={() => void refresh()} /></>
+  if (!snapshot) return null
+  return <><button type="button" onClick={() => void signOut()}>Log out</button>{actionError && <p role="alert">{actionError}</p>}{success && <p role="status">{success}</p>}<section><h2>Overview</h2><p>Total Companies: {snapshot.counts.totalCompanies}</p><p>Active Companies: {snapshot.counts.activeCompanies}</p><p>Suspended Companies: {snapshot.counts.suspendedCompanies}</p><p>Total Licences: {snapshot.counts.totalLicences}</p><p>Available Licences: {snapshot.counts.availableLicences}</p><p>Redeemed Licences: {snapshot.counts.redeemedLicences}</p><p>Expired Licences: {snapshot.counts.expiredLicences}</p><p>Revoked Licences: {snapshot.counts.revokedLicences}</p></section><section><h2>Companies</h2>{snapshot.companies.length === 0 ? <p>No Companies found.</p> : <table><thead><tr><th>Name</th><th>Email</th><th>Slug</th><th>Status</th><th>Created</th><th>Action</th></tr></thead><tbody>{snapshot.companies.map((company) => <tr key={company.id}><td>{company.name}</td><td>{company.email}</td><td>{company.slug}</td><td>{company.status}</td><td>{new Date(company.createdAt).toLocaleDateString()}</td><td><button type="button" disabled={pendingId === company.id} onClick={() => void toggle(company)}>{company.status === 'active' ? 'Suspend' : 'Reactivate'}</button></td></tr>)}</tbody></table>}</section><section><h2>Licences</h2>{snapshot.licences.length === 0 ? <p>No licences found.</p> : <table><thead><tr><th>Company</th><th>Prefix</th><th>Status</th><th>Expires</th><th>Created</th><th>Redeemed</th></tr></thead><tbody>{snapshot.licences.map((licence) => <tr key={licence.id}><td>{licence.companyName}</td><td>{licence.keyPrefix}</td><td>{licence.displayStatus}</td><td>{new Date(licence.expiresAt).toLocaleDateString()}</td><td>{new Date(licence.createdAt).toLocaleDateString()}</td><td>{licence.redeemedAt ? new Date(licence.redeemedAt).toLocaleDateString() : '-'}</td></tr>)}</tbody></table>}</section><GenerateLicenceForm account={account} onGenerated={() => void refresh()} /></>
 }
 
+function AdminPage() { const { status, account, signOut } = useAuth(); if (status === 'loading') return <main><h1>Platform Admin</h1><p>Checking your session...</p></main>; const access = evaluateAdminAccess(account); return <main><h1>Platform Admin</h1>{access === 'unauthenticated' && <AdminLoginForm />}{access === 'ADMIN_ONLY' && <><p role="alert">{AUTH_MESSAGES.ADMIN_ONLY}</p><button type="button" onClick={() => void signOut()}>Log out</button></>}{access === 'allowed' && account?.kind === 'platform-admin' && <AdminDashboard account={account} signOut={signOut} />}</main> }
 export default AdminPage

@@ -1,4 +1,4 @@
-﻿# Project Status
+# Project Status
 
 ## Current Phase
 
@@ -318,7 +318,7 @@ printing secrets or account values:
   review confirmed no sensitive logging.
 - Production cross-subdomain session handling remains a Phase 8 concern.
 
-Phase 5 implementation is complete locally; do not start Phase 6 until review.
+Phase 5 implementation is complete locally; Phase 6 Platform Admin implementation is now complete pending manual review.
 
 ## Phase 4 Completion Confirmation
 
@@ -363,7 +363,7 @@ Result: PHASE 5 CODE COMPLETE
 
 - npm run lint -- passed.
 - npm run typecheck -- passed.
-- npm run test -- passed (14 files, 103 tests).
+- npm run test -- passed (15 files, 106 tests).
 - npm run build -- passed.
 - No migration was created and no Cloud schema was changed. The transactional supabase/tests/isolation.sql verification passed against Supabase Cloud; its Platform Admin assertions target synthetic IDs so existing Cloud Companies do not affect the check, and all synthetic data rolled back.
 - Manual browser verification of Todo interactions remains the next review step.
@@ -371,9 +371,9 @@ Result: PHASE 5 CODE COMPLETE
 ## Specification Tree Audit
 
 - Canonical specifications present: 001-foundation, 002-database,
-  003-licensing-registration, 004-authentication, and 005-todo.
-- Requested future canonical folders 006-platform-admin, 007-extension-test,
-  and 008-deployment are not yet present; no placeholder specifications were
+  003-licensing-registration, 004-authentication, 005-todo, and 006-platform-admin.
+- Requested future canonical folders 007-extension-test and 008-deployment
+  are not yet present; no placeholder specifications were
   invented.
 - The twelve empty noncanonical folders were moved, without deletion, to
   specs/_archive. The archive is historical and non-authoritative.
@@ -383,3 +383,39 @@ Result: PHASE 5 CODE COMPLETE
 - Registration implementation and focused tests cover key generation/hashing,
   validation, RPC atomic redemption, Auth-user compensation/reconciliation,
   safe errors, redirect handoff, and account/session guards.
+
+## Phase 6 Platform Admin Implementation
+
+Result: PHASE 6 COMPLETE
+
+- `/admin` now provides protected Platform Admin dashboard counts for Companies and licences.
+- Company list displays name, email, slug, status, and created date; status changes are limited to active/suspended with confirmation, pending protection, refresh, and safe feedback.
+- Licence list displays company name, display prefix, derived status (including expired), expiry, created, and redeemed dates. Revocation remains read-only and out of scope.
+- Existing `generate-licence` Edge Function integration is reused. Generation is fixed to the approved `available` status; the raw key is shown once in memory with Copy/Dismiss and is never persisted or logged by the browser.
+- Repository queries select only approved safe fields, never `key_hash` or tasks. Status updates send only `{ status }`; Supabase JWT, RLS, and column privileges remain authoritative.
+- No migration or Cloud schema/RLS change was required.
+
+### Phase 6 files
+
+- `src/modules/platform-admin/AdminPage.tsx` (updated)
+- `src/modules/platform-admin/platformAdminRepository.ts` (new)
+- `src/modules/platform-admin/platformAdminService.ts` (new)
+- `src/modules/platform-admin/platformAdminService.test.ts` (new)
+- `specs/006-platform-admin/spec.md` (existing approved scope)
+
+### Validation
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed: 15 files, 106 tests.
+- `npm run build` — passed.
+- Existing Cloud RLS/isolation verification remains authoritative: Platform Admin can read Companies/licences and update only `companies.status`; task rows remain inaccessible; Company rows remain isolated. No migration was applied in Phase 6.
+
+Manual browser verification was completed by the project owner and passed:
+
+- Platform Admin session restoration, dashboard loading, Company/licence counts, and both listings.
+- Company suspension blocked workspace access; reactivation restored it.
+- Licence generation, one-time raw-key display, Copy, Dismiss, and refresh behavior.
+- Company accounts blocked from `/admin`; Platform Admin had no task access.
+
+Phase 6 is complete. No commit or push was performed.
