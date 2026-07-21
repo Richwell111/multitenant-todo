@@ -12,6 +12,7 @@ import {
   updateTaskStatus,
 } from '../tasks/taskService'
 import type { TaskRecord } from '../tasks/taskRepository'
+import ExtensionsSection from '../extensions/ExtensionsSection'
 
 function WorkspacePage() {
   const { slug } = useParams<{ slug: string }>()
@@ -152,6 +153,7 @@ function WorkspacePage() {
       </section>
       {success && <p role="status">{success}</p>}
       {actionError && <p role="alert">{actionError}</p>}
+      <ExtensionsSection account={company} />
       <section aria-labelledby="tasks-heading">
         <h2 id="tasks-heading">Tasks</h2>
         {loading && <p role="status">Loading tasks…</p>}

@@ -371,8 +371,8 @@ Result: PHASE 5 CODE COMPLETE
 ## Specification Tree Audit
 
 - Canonical specifications present: 001-foundation, 002-database,
-  003-licensing-registration, 004-authentication, 005-todo, and 006-platform-admin.
-- Requested future canonical folders 007-extension-test and 008-deployment
+  003-licensing-registration, 004-authentication, 005-todo, 006-platform-admin, and 007-extension-test.
+- Requested future canonical folder 008-deployment
   are not yet present; no placeholder specifications were
   invented.
 - The twelve empty noncanonical folders were moved, without deletion, to
@@ -388,34 +388,89 @@ Result: PHASE 5 CODE COMPLETE
 
 Result: PHASE 6 COMPLETE
 
-- `/admin` now provides protected Platform Admin dashboard counts for Companies and licences.
-- Company list displays name, email, slug, status, and created date; status changes are limited to active/suspended with confirmation, pending protection, refresh, and safe feedback.
-- Licence list displays company name, display prefix, derived status (including expired), expiry, created, and redeemed dates. Revocation remains read-only and out of scope.
-- Existing `generate-licence` Edge Function integration is reused. Generation is fixed to the approved `available` status; the raw key is shown once in memory with Copy/Dismiss and is never persisted or logged by the browser.
-- Repository queries select only approved safe fields, never `key_hash` or tasks. Status updates send only `{ status }`; Supabase JWT, RLS, and column privileges remain authoritative.
-- No migration or Cloud schema/RLS change was required.
+- `/admin` provides protected Platform Admin counts, Company/licence listings,
+  active/suspended status controls, and existing licence generation.
+- Status updates send only `{ status }`; no task data is requested.
+- No Phase 6 migration or Cloud schema/RLS change was required.
 
 ### Phase 6 files
 
-- `src/modules/platform-admin/AdminPage.tsx` (updated)
-- `src/modules/platform-admin/platformAdminRepository.ts` (new)
-- `src/modules/platform-admin/platformAdminService.ts` (new)
-- `src/modules/platform-admin/platformAdminService.test.ts` (new)
-- `specs/006-platform-admin/spec.md` (existing approved scope)
+- `src/modules/platform-admin/AdminPage.tsx`
+- `src/modules/platform-admin/platformAdminRepository.ts`
+- `src/modules/platform-admin/platformAdminService.ts`
+- `src/modules/platform-admin/platformAdminService.test.ts`
+- `specs/006-platform-admin/spec.md`
 
-### Validation
+### Phase 6 validation
 
 - `npm run lint` — passed.
 - `npm run typecheck` — passed.
 - `npm run test` — passed: 15 files, 106 tests.
 - `npm run build` — passed.
-- Existing Cloud RLS/isolation verification remains authoritative: Platform Admin can read Companies/licences and update only `companies.status`; task rows remain inaccessible; Company rows remain isolated. No migration was applied in Phase 6.
+- Manual browser verification was completed by the project owner and passed.
 
-Manual browser verification was completed by the project owner and passed:
+## Phase 7 Extension Test Implementation
 
-- Platform Admin session restoration, dashboard loading, Company/licence counts, and both listings.
-- Company suspension blocked workspace access; reactivation restored it.
-- Licence generation, one-time raw-key display, Copy, Dismiss, and refresh behavior.
-- Company accounts blocked from `/admin`; Platform Admin had no task access.
+Result: PHASE 7 COMPLETE
 
-Phase 6 is complete. No commit or push was performed.
+### Implemented scope
+
+- Added `extensions` and `company_extensions` with fixed idempotent proof seeds.
+- Added forced RLS and least-privilege grants for Company visibility and
+  Platform Admin assignment management.
+- Assignment changes use an upsert on `(company_id, extension_id)` and update
+  only `enabled`.
+- Added Company and Platform Admin extension repositories/services and UI.
+- Task Notes Summary uses the existing authenticated Company task boundary.
+- Priority Labels Demo is read-only and does not alter `tasks`.
+
+### Phase 7 files
+
+- `supabase/migrations/20260721150000_extensions.sql`
+- `supabase/migrations/20260721151000_fix_extension_assignment_rls.sql`
+- `supabase/tests/extensions.sql`
+- `src/modules/extensions/`
+- `src/modules/platform-admin/platformAdminExtensionRepository.ts`
+- `src/modules/platform-admin/platformAdminExtensionService.ts`
+- `src/modules/platform-admin/PlatformAdminExtensions.tsx`
+- `src/modules/companies/WorkspacePage.tsx`
+- `src/modules/platform-admin/AdminPage.tsx`
+
+### Validation
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed: 19 files, 114 tests.
+- `npm run build` — passed.
+- Linked Cloud migration history is in parity through
+  `20260721151000_fix_extension_assignment_rls.sql` for project
+  `vckpgejyisetnggooxlf`.
+- `supabase/tests/extensions.sql` passed transactionally; all synthetic data
+  rolled back.
+- `supabase/tests/isolation.sql` passed after the extension migrations.
+- Cloud table existence, fixed seed IDs, assignment primary key, and RLS checks
+  passed.
+- Security Advisor reported only the pre-existing
+  `auth_leaked_password_protection` warning; no extension-related warning was
+  reported.
+
+### Defects found and fixed
+
+- The initial assignment INSERT/UPDATE policies caused infinite RLS recursion by
+  cross-referencing `extensions` from a policy that was itself reached through
+  `extensions`. The follow-up migration restricts writes directly to the
+  approved fixed private-extension UUID and removes the recursion.
+
+### Manual browser verification
+
+Completed by the project owner and passed:
+
+- Active Companies see the shared Task Notes Summary with current-Company-only counts.
+- Unassigned Companies do not see Priority Labels Demo; assigned Companies see it after refresh.
+- Company-to-Company private assignment isolation passed.
+- Platform Admin enable/disable, no-task-content access, and confirmation flows passed.
+- Suspended Companies receive no extension access.
+- Disabling the private assignment removes it while the shared extension remains.
+- Todo behavior and schema remain unchanged; no priority field was introduced.
+
+Phase 7 is complete. No commit or push was performed.
