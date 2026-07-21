@@ -354,12 +354,16 @@ select pg_temp.assert_true(
   'Platform Admin must not see tasks'
 );
 select pg_temp.assert_true(
-  (select count(*) = 3 from public.companies),
-  'Platform Admin must see all Companies'
+  (select count(*) = 3 from public.companies where id in (
+    '10000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    '10000000-0000-0000-0000-000000000003'
+  )),
+  'Platform Admin must see all synthetic Companies'
 );
 select pg_temp.assert_true(
-  (select count(*) = 1 from public.licences),
-  'Platform Admin must see licences'
+  (select count(*) = 1 from public.licences where id = '20000000-0000-0000-0000-000000000001'),
+  'Platform Admin must see the synthetic licence'
 );
 
 update public.companies
@@ -439,3 +443,4 @@ select pg_temp.assert_true(
 
 reset role;
 rollback;
+

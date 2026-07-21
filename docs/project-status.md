@@ -1,9 +1,8 @@
-# Project Status
+﻿# Project Status
 
 ## Current Phase
 
-Phase 4: Authentication complete; automated, owner-confirmed browser, and structural Cloud verification passed,
-with no remaining Phase 4 implementation blockers.
+Phase 5 Todo implementation complete locally; manual Todo browser verification remains for review.
 
 `/login` is a real Company login and `/admin` has a Platform Admin sign-in state.
 Cloud contains one mapped Platform Admin and one mapped Company; owner-confirmed browser verification is complete.
@@ -319,7 +318,7 @@ printing secrets or account values:
   review confirmed no sensitive logging.
 - Production cross-subdomain session handling remains a Phase 8 concern.
 
-Do not start Phase 5 until the review gate is explicitly opened.
+Phase 5 implementation is complete locally; do not start Phase 6 until review.
 
 ## Phase 4 Completion Confirmation
 
@@ -332,3 +331,48 @@ registration hand-off. Structural Cloud checks and automated validation passed.
 Fresh Edge Function logs were not retrievable through the pinned CLI; source
 review confirmed that passwords, raw licence keys, hashes, tokens, and secrets
 are not logged.
+
+## Phase 5 Todo Implementation
+
+Result: PHASE 5 CODE COMPLETE
+
+- The protected active-Company workspace now renders a basic Todo dashboard.
+- Dashboard counts are derived from the authenticated Company task list: total, pending, and completed.
+- Companies can create, list, edit, complete, reopen, and delete their own tasks.
+- Create and edit forms trim values and enforce title (1-120 characters) and description (optional, maximum 1000 characters) validation.
+- Loading, empty, retryable error, validation, pending-action, and success states are shown without exposing database errors.
+- The component uses the task service only; Supabase access remains in the task repository.
+- company_id is always derived from the current authenticated session in the repository. No URL or form value can select a tenant.
+- Existing Cloud tasks schema and RLS policies were reused without a migration. RLS still requires auth.uid() = company_id, an active Company, and excludes Platform Admins for every task operation.
+- Platform Admin routes continue to receive no task rows because the existing policies provide no task access.
+- Removed the native task-list bullet marker with a scoped list reset in src/index.css.
+
+### Phase 5 Files
+
+- src/modules/tasks/taskSchemas.ts
+- src/modules/tasks/taskRepository.ts
+- src/modules/tasks/taskService.ts
+- src/modules/tasks/taskSchemas.test.ts
+- src/modules/tasks/taskRepository.test.ts
+- src/modules/tasks/taskService.test.ts
+- src/modules/companies/WorkspacePage.tsx
+- src/modules/companies/WorkspacePage.test.tsx
+- supabase/tests/isolation.sql (fixture assertion correction only)
+
+### Phase 5 Validation
+
+- npm run lint -- passed.
+- npm run typecheck -- passed.
+- npm run test -- passed (14 files, 103 tests).
+- npm run build -- passed.
+- No migration was created and no Cloud schema was changed. The transactional supabase/tests/isolation.sql verification passed against Supabase Cloud; its Platform Admin assertions target synthetic IDs so existing Cloud Companies do not affect the check, and all synthetic data rolled back.
+- Manual browser verification of Todo interactions remains the next review step.
+
+
+
+
+
+
+
+
+
