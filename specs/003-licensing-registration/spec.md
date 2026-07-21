@@ -15,7 +15,7 @@ Implement the smallest secure Phase 3 flow on Supabase Cloud:
 - The Company row and licence redemption are one PostgreSQL transaction.
 - If database registration fails after Auth user creation, the new Auth user
   is removed when it is safe to do so.
-- Successful registration redirects to the Company's workspace subdomain.
+- Successful registration hands the visitor to `/login` with a one-time success message; it does not create a browser session.
 
 The existing four tables remain the complete data model. No extra table is
 required.
@@ -55,9 +55,9 @@ required.
 4. It creates the Auth user with the normalized email and supplied password.
 5. It calls one restricted database RPC that repeats authoritative validation,
    locks the licence, inserts the Company, and redeems the licence atomically.
-6. On success, the client discards the password and licence key and redirects
-   to the workspace subdomain. Phase 3 does not create a session; the existing
-   root redirect takes the visitor to that workspace's `/login` route.
+6. On success, the client discards the password and licence key and navigates
+   exactly to `/login` with a success message. Phase 3 does not create a browser
+   session; the Company signs in separately.
 
 ## 4. Data flow
 
@@ -76,8 +76,8 @@ Registration browser
        -> lock licence row
        -> insert companies row
        -> update licence to redeemed
-  <- workspace slug
-  -> workspace subdomain
+  <- company result
+  -> `/login` with a success message
 ```
 
 Passwords are sent only over HTTPS to the Edge Function and then to Supabase
@@ -347,9 +347,9 @@ Errors use:
 - Registration form: Company Name, Company Email, Password, Workspace Slug,
   Licence Key, submit state, accessible field errors, and safe form-level error.
 - Disable duplicate submits while a request is pending.
-- On success, clear password/key state and navigate with `window.location.replace`
-  to the configured workspace base URL with the normalized slug inserted as the
-  subdomain. Do not trust the slug later as an authorization boundary.
+- On success, clear password/key state and navigate exactly to `/login` with a
+  transient success message. Do not create a browser session or trust the slug
+  as an authorization boundary.
 - Platform Admin login is Phase 4. Phase 3 verifies generation using an existing
   seeded admin session/JWT supplied at test time and does not add a login form.
 
@@ -372,8 +372,8 @@ Errors use:
    triggers safe Auth-user compensation.
 10. `anon` and `authenticated` cannot call the registration RPC or directly
     insert Companies/redeem licences; existing RLS remains effective.
-11. Successful registration redirects to the normalized workspace subdomain
-    without automatically signing the Company in.
+11. Successful registration redirects exactly to `/login` with a success message
+    and without automatically signing the Company in.
 12. No real IDs, emails, passwords, keys, hashes, tokens, or secrets are
     committed or logged.
 13. Existing Phase 1 routing and Phase 2 isolation tests still pass.
@@ -480,8 +480,8 @@ No new application table is expected.
 ### Remaining deployment-time decisions
 
 - The production base domain and exact allowed-origin list are supplied in
-  environment configuration before deployment; local examples use
-  `http://localhost:3000` and `http://<slug>.localhost:3000`.
+  environment configuration before deployment; local development uses the single origin `http://localhost:5173` and
+  `/workspace/<slug>`.
 - The Cloud project's exact password policy must be confirmed and mirrored in
   form guidance; Supabase Auth remains authoritative.
 - CAPTCHA or external rate limiting is deferred unless the public Cloud test

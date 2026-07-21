@@ -9,6 +9,8 @@ Before planning or editing, read:
 3. the relevant file under `specs/`
 4. `CLAUDE.md` for additional project rules
 
+Specification authority: use only the canonical phase folders `specs/001-foundation` through `specs/008-deployment`. `specs/_archive` contains historical, non-authoritative material and must not be used to plan or implement work.
+
 ## Project Goal
 
 Build a small proof-of-concept multi-tenant Todo SaaS.

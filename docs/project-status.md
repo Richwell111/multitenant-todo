@@ -368,11 +368,18 @@ Result: PHASE 5 CODE COMPLETE
 - No migration was created and no Cloud schema was changed. The transactional supabase/tests/isolation.sql verification passed against Supabase Cloud; its Platform Admin assertions target synthetic IDs so existing Cloud Companies do not affect the check, and all synthetic data rolled back.
 - Manual browser verification of Todo interactions remains the next review step.
 
+## Specification Tree Audit
 
-
-
-
-
-
-
-
+- Canonical specifications present: 001-foundation, 002-database,
+  003-licensing-registration, 004-authentication, and 005-todo.
+- Requested future canonical folders 006-platform-admin, 007-extension-test,
+  and 008-deployment are not yet present; no placeholder specifications were
+  invented.
+- The twelve empty noncanonical folders were moved, without deletion, to
+  specs/_archive. The archive is historical and non-authoritative.
+- Company registration is specified across the Phase 3 licensing/registration
+  contract and the Phase 4 authentication handoff. The final handoff is
+  /login with a success message and no automatic browser session.
+- Registration implementation and focused tests cover key generation/hashing,
+  validation, RPC atomic redemption, Auth-user compensation/reconciliation,
+  safe errors, redirect handoff, and account/session guards.

@@ -31,6 +31,8 @@ CLAUDE.md
 
 The PRD defines the approved product scope.
 
+Specification authority: use only the canonical phase folders `specs/001-foundation` through `specs/008-deployment`. `specs/_archive` is historical and must not be used as implementation authority.
+
 Do not add functionality that is not required by the PRD.
 
 ---

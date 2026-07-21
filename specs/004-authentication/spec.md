@@ -1,7 +1,6 @@
 # Phase 4: Authentication - Specification
 
-Status: **approved decisions recorded; awaiting final review. No authentication
-code may be written until this document is approved.**
+Status: **approved and implemented.**
 
 ## 1. Scope
 
@@ -357,11 +356,8 @@ and a rerun of `supabase/tests/isolation.sql`.
    proving the production subdomain flow.**
 2. **Production base domain value.** `todoapp.com` is illustrative; the real
    value is supplied through `VITE_WORKSPACE_BASE_DOMAIN` at deployment.
-3. **Phase 3 registration redirect.** Registration currently sends a new Company
-   to the workspace URL. Once `buildWorkspaceUrl` returns a local path, that
-   redirect lands on `/workspace/<slug>`, which is a protected route and, with no
-   session, sends the visitor to `/login`. Confirm this is the wanted post-
-   registration behaviour, or change registration to redirect straight to
-   `/login`.
+3. **Phase 3 registration redirect - resolved.** Registration navigates exactly
+   to `/login` with a transient success message. It does not create a browser
+   session; the Company signs in separately.
 4. **Workspace placeholder content.** Phase 4 renders the Company name and a
    logout control only. Confirm nothing more is expected before Phase 5.
