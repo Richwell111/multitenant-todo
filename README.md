@@ -1,75 +1,305 @@
-# React + TypeScript + Vite
+# Multi-Tenant Todo SaaS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A small proof-of-concept multi-tenant Todo application built with React,
+TypeScript, Vite, and Supabase Cloud. The application demonstrates licence-based
+Company registration, Company-isolated tasks, Platform Admin management,
+workspace routing, reusable/private extensions, and privacy-conscious
+diagnostics.
 
-Currently, two official plugins are available:
+This repository is a modular monolith: browser routes and components call
+services, services call repositories, and repositories call Supabase. Company
+isolation is enforced by PostgreSQL Row Level Security (RLS), not by the URL or
+UI alone.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Current status
 
-## React Compiler
+- Phases 1-7 are implemented and have passed their approved automated and Cloud
+  verification gates.
+- Phase 8 (Diagnostics and Usage Monitoring) is implemented locally, including
+  Sentry, PostHog, diagnostics services, lifecycle history, feature requests,
+  release records, and the Platform Admin diagnostics UI.
+- Phase 8 still requires its migration/SQL review, Cloud application and RLS
+  verification, Security Advisor review, and final browser verification before
+  it can be marked complete.
+- Phase 9 (deployment) has not started.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+See [docs/project-status.md](docs/project-status.md) for the detailed phase
+record and known blockers.
 
-## Expanding the ESLint configuration
+## Product routes
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| Route | Purpose | Access |
+| --- | --- | --- |
+| `/` | Redirects to `/login` | Everyone |
+| `/login` | Company login; Platform Admin accounts are detected and sent to `/admin` | Everyone |
+| `/register` | Licence-based Company registration | Unauthenticated visitors |
+| `/admin` | Platform Admin dashboard: Companies, licences, extensions, and basic management | Platform Admin only |
+| `/admin/customization-requests` | Read-only customization/feature request list | Platform Admin only |
+| `/admin/diagnostics` | Diagnostics, provider status, release records, feature requests, and extension lifecycle history | Platform Admin only |
+| `/workspace/:slug` | Company Todo workspace and extensions | Matching active Company only |
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Unknown routes redirect to `/login`. During local development all workspaces
+use the same origin and the `/workspace/:slug` path. In production,
+`VITE_WORKSPACE_BASE_DOMAIN` is used to construct workspace subdomain URLs;
+the subdomain is never treated as an authorization boundary.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Requirements
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Node.js and npm compatible with the versions used by the repository lockfile.
+- Access to the linked Supabase Cloud project.
+- The Supabase CLI when reviewing or applying migrations. Use the pinned CLI
+  form used by this project, for example
+  `npx --yes supabase@2.101.0 ...`.
+- A modern browser for manual authentication and workspace checks.
 
+Supabase Cloud is the only supported backend. Do not start local Supabase,
+Docker, or a local Postgres instance for this project.
+
+## First-time setup
+
+Run these commands from the repository root.
+
+### 1. Install dependencies
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Create local environment configuration
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+PowerShell:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+Copy-Item .env.example .env
 ```
+
+macOS/Linux:
+
+```bash
+cp .env.example .env
+```
+
+Fill `.env` with the values for your approved Supabase Cloud project and local
+diagnostics configuration. `.env` is ignored by Git and must never be
+committed. Keep server-only values such as service-role keys, database
+passwords, and Supabase access tokens out of browser-exposed `VITE_*` values.
+
+The safe variable names are:
+
+| Variable | Use |
+| --- | --- |
+| `VITE_SUPABASE_URL` | Supabase project URL used by the browser client |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous browser key |
+| `VITE_WORKSPACE_BASE_DOMAIN` | Production workspace base domain; local development uses paths |
+| `VITE_DIAGNOSTICS_ENABLED` | Enables diagnostics adapters when set to `true` |
+| `VITE_SENTRY_DSN` | Sentry browser DSN, if diagnostics are enabled |
+| `VITE_POSTHOG_KEY` | PostHog project key, if diagnostics are enabled |
+| `VITE_POSTHOG_HOST` | PostHog host, if diagnostics are enabled |
+| `VITE_APP_VERSION` | Release/version label attached to safe diagnostics metadata |
+| `VITE_APP_ENVIRONMENT` | Environment label such as `development` or `production` |
+
+`.env.example` contains empty or local-safe placeholders. Never print real
+environment values in logs, documentation, screenshots, or bug reports.
+
+### 3. Start the development server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173). The local flow is:
+
+1. Register a Company with a valid licence generated by a Platform Admin.
+2. Sign in at `/login`.
+3. Use the Company workspace at `/workspace/<slug>`.
+4. Use `/admin` in a separate authenticated Platform Admin context.
+
+There is no local subdomain alias. Do not use `alpha.localhost`, `lvh.me`, or
+another local host name.
+
+### 4. Build and preview the production bundle
+
+```bash
+npm run build
+npm run preview
+```
+
+The preview command serves the generated Vite bundle locally. It does not
+deploy the application or apply Supabase migrations.
+
+## Supabase workflow
+
+Database changes are version-controlled under `supabase/migrations/` and SQL
+verification scripts are under `supabase/tests/`. Review migrations and their
+RLS policies before applying them to Cloud; do not run `supabase db push`
+blindly.
+
+Useful read-only checks include:
+
+```bash
+npx --yes supabase@2.101.0 status
+npx --yes supabase@2.101.0 migration list
+```
+
+After the migration list and target project have been confirmed, an approved
+Cloud migration can be applied with:
+
+```bash
+npx --yes supabase@2.101.0 db push
+```
+
+Run the relevant SQL verification in the Supabase SQL Editor or approved Cloud
+verification process afterward. Do not use local database commands as a
+substitute: this repository intentionally does not run local Supabase or
+Docker, so `supabase db lint --local` cannot succeed without a local Postgres
+service.
+
+The current Phase 8 migration is:
+
+```text
+supabase/migrations/20260722070351_phase8_diagnostics.sql
+```
+
+It must remain pending review until the migration, `supabase/tests/diagnostics.sql`,
+and the related extension RLS tests are approved for Cloud.
+
+## Main capabilities
+
+### Company registration and authentication
+
+- Platform Admins generate one-time licence keys.
+- Only a secure licence hash and display prefix are stored.
+- Registration creates the Auth user, Company row, and redemption atomically
+  through the trusted server flow.
+- Company and Platform Admin account kinds are resolved from their database
+  mapping.
+- Sessions are restored by Supabase Auth; logout clears the local account state.
+- Suspended Companies and cross-Company workspace slugs are blocked.
+
+### Todo workspace
+
+The active Company can create, list, edit, complete/reopen, and delete its own
+tasks. Counts and task data are loaded through the task repository and are
+protected by `company_id`-based RLS. Platform Admins receive no task rows.
+
+### Extensions and Platform Admin management
+
+- The shared Task Notes Summary uses only the authenticated Company's
+  RLS-scoped tasks.
+- The private Priority Labels Demo is visible only when a Platform Admin has
+  enabled its assignment.
+- Platform Admins can list Companies and licences, suspend/reactivate
+  Companies, generate licences, and enable/disable the private proof extension.
+- Extension assignment history is append-only and uses the restricted lifecycle
+  RPC; direct browser assignment mutation is denied.
+
+### Diagnostics
+
+Diagnostics are routed through a service and provider adapters:
+
+```text
+Application modules -> diagnostics service -> Sentry/PostHog adapters
+                                      -> trusted Supabase diagnostics records
+```
+
+Autocapture, automatic pageviews, session recording, raw errors, credentials,
+licence values, task content, and arbitrary free text are not sent. Provider
+failures must not break authentication, registration, Todo, Admin, or extension
+actions.
+
+## Security model
+
+- `companies.id` maps directly to `auth.users.id`.
+- Every Company-owned row has a `company_id` and is protected by RLS.
+- Active status is required for Company workspace, task, and extension access.
+- Platform Admin access is explicit and does not grant task-content access.
+- Companies cannot read or mutate another Company's rows.
+- The browser never receives a service-role key or other server secret.
+- Raw licence keys are displayed once and are never stored or logged.
+- Workspace URLs are routing helpers only; authorization comes from the session
+  and database policies.
+
+## Validation commands
+
+Run the standard checks from the repository root:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
+
+`npm run test` runs Vitest and `npm run build` runs TypeScript build checks plus
+the Vite production build. In a restricted sandbox, Vite may fail with a
+`spawn EPERM` process error even when the code is valid; rerun those commands
+in a normal development environment before treating that sandbox error as an
+application defect. The project does not consider a local Supabase lint failure
+without a local Postgres service actionable.
+
+## What remains to complete
+
+Before Phase 8 can be marked complete:
+
+1. Review `20260722070351_phase8_diagnostics.sql`, its privileges, and all
+   diagnostics/extension SQL tests.
+2. Confirm the linked Supabase Cloud project and pending migration list.
+3. Apply the approved Phase 8 migration to Cloud.
+4. Run Cloud SQL/RLS isolation checks for lifecycle history, feature requests,
+   release records, and the assignment RPC.
+5. Run the Supabase Security Advisor and resolve any new warnings.
+6. Perform manual browser verification of the diagnostics page, provider status,
+   extension lifecycle history, feature-request list, release records, responsive
+   admin navigation, and safe empty/error states.
+7. Rerun the complete lint, typecheck, test, and build suite in an unrestricted
+   environment after the UI polish pass.
+8. Record the Cloud and browser results in `docs/project-status.md` and stop for
+   review.
+
+Phase 9 deployment work, production hosting, and any future product features
+are not part of the current implementation.
+
+## Troubleshooting
+
+### The app cannot connect to Supabase
+
+Check that `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are present in the
+local `.env`, restart Vite after changing environment variables, and confirm
+that the browser is pointed at the intended Cloud project.
+
+### A protected route redirects to login
+
+The account must exist in the expected `platform_admins` or `companies` table,
+the session must be valid, and a Company must have `status = active`. Use a
+separate browser context when testing Platform Admin and Company sessions.
+
+### Diagnostics are disabled
+
+Set `VITE_DIAGNOSTICS_ENABLED=true` and provide the approved PostHog key/host
+and/or Sentry DSN in the ignored local `.env`. The adapters intentionally remain
+no-ops when configuration is missing or tests are running.
+
+### A migration command reports unexpected work
+
+Stop and inspect `supabase migration list`. Do not apply unexpected migrations;
+review the migration files and linked project first.
+
+## Repository guide
+
+- `src/` - React application, routes, modules, services, repositories, and tests.
+- `supabase/migrations/` - version-controlled Cloud schema, grants, RLS, and RPCs.
+- `supabase/tests/` - SQL isolation and security verification scripts.
+- `docs/PRD.md` - product requirements.
+- `docs/project-status.md` - phase history, validation, Cloud checks, and blockers.
+- `specs/` - canonical phase specifications; `specs/_archive/` is historical and
+  is not implementation authority.
+- `AGENTS.md` and `CLAUDE.md` - project working rules.
+
+## Project rules
+
+- Keep the implementation basic and phase-scoped.
+- Do not weaken RLS or add unnecessary tables and abstractions.
+- Do not add local Supabase, Docker, or cloud/local synchronization.
+- Do not commit secrets, raw licence keys, passwords, tokens, or service-role
+  credentials.
+- Do not commit or push changes unless explicitly requested.
