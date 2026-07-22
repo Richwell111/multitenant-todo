@@ -40,12 +40,18 @@ export async function listCompanyExtensionAssignments(): Promise<CompanyExtensio
   return ((data ?? []) as Record<string, unknown>[]).map(mapAssignment)
 }
 
-export async function setPrivateExtensionAssignment(companyId: string, extensionId: string, enabled: boolean): Promise<CompanyExtensionAssignment> {
-  const { data, error } = await getSupabaseClient()
-    .from('company_extensions')
-    .upsert({ company_id: companyId, extension_id: extensionId, enabled }, { onConflict: 'company_id,extension_id' })
-    .select(ASSIGNMENT_COLUMNS)
-    .single()
+export async function setPrivateExtensionAssignment(
+  companyId: string,
+  extensionId: string,
+  enabled: boolean,
+  disabledReason: string | null,
+): Promise<CompanyExtensionAssignment> {
+  const { data, error } = await getSupabaseClient().rpc('set_private_extension_assignment', {
+    p_company_id: companyId,
+    p_extension_id: extensionId,
+    p_enabled: enabled,
+    p_disabled_reason: disabledReason,
+  }).single()
   if (error || !data) throw new PlatformAdminExtensionRepositoryError(error ? 'QUERY_FAILED' : 'NOT_FOUND')
   return mapAssignment(data as Record<string, unknown>)
 }

@@ -10,15 +10,24 @@ vi.mock('./platformAdminExtensionService', async () => ({
 
 const account = { kind: 'platform-admin' } as const
 const company = { id: '10000000-0000-0000-0000-000000000001', name: 'Alpha', email: 'alpha@example.test', slug: 'alpha', status: 'active' as const, createdAt: '2026-01-01T00:00:00Z' }
-const snapshot = { extensions: [{ id: '22222222-2222-4222-8222-222222222222', key: 'priority-labels-demo', name: 'Priority Labels Demo', description: null, availabilityType: 'private' as const, isActive: true }], assignments: [], companies: [company] }
+const snapshot = { extensions: [{ id: '11111111-1111-4111-8111-111111111111', key: 'task-notes-summary', name: 'Task Notes Summary', description: null, availabilityType: 'shared' as const, isActive: true }, { id: '22222222-2222-4222-8222-222222222222', key: 'priority-labels-demo', name: 'Priority Labels Demo', description: null, availabilityType: 'private' as const, isActive: true }], assignments: [], companies: [company] }
 
 beforeEach(() => { vi.clearAllMocks(); service.loadPlatformAdminExtensions.mockResolvedValue(snapshot); service.setPlatformAdminPrivateAssignment.mockResolvedValue({ companyId: company.id, extensionId: snapshot.extensions[0].id, enabled: true, createdAt: '2026-01-01T00:00:00Z' }); vi.stubGlobal('confirm', vi.fn(() => true)) })
 
 describe('PlatformAdminExtensions', () => {
+  it('separates static core, shared, and private features', async () => {
+    render(<PlatformAdminExtensions account={account} />)
+    expect(await screen.findByRole('heading', { name: 'Core Features' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Shared Features' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Private Customizations' })).toBeInTheDocument()
+    const coreCard = screen.getByText('Company authentication').closest('article')
+    expect(coreCard?.querySelector('button')).toBeNull()
+  })
+
   it('renders registry and enables a private assignment after confirmation', async () => {
     render(<PlatformAdminExtensions account={account} />)
     expect((await screen.findAllByText('Priority Labels Demo')).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('button', { name: 'Enable' }))
-    await waitFor(() => expect(service.setPlatformAdminPrivateAssignment).toHaveBeenCalledWith(account, company.id, snapshot.extensions[0].id, true))
+    await waitFor(() => expect(service.setPlatformAdminPrivateAssignment).toHaveBeenCalledWith(account, company.id, snapshot.extensions[1].id, true, null))
   })
 })

@@ -1,17 +1,15 @@
 import type { Account } from '../auth/authService'
+import { captureUsage } from '../diagnostics/diagnosticsService'
 import { loadTaskNotesSummary as repositoryLoadSummary, listVisibleExtensions, type ExtensionRecord, type TaskNotesSummary } from './extensionRepository'
 
 export type { TaskNotesSummary } from './extensionRepository'
-
 export type SupportedExtensionKey = 'task-notes-summary' | 'priority-labels-demo'
 export type VisibleExtension = ExtensionRecord & { key: SupportedExtensionKey }
 
 export class ExtensionServiceError extends Error {
   readonly code: 'FORBIDDEN' | 'LOAD_FAILED' | 'UNKNOWN_EXTENSION'
-  constructor(code: 'FORBIDDEN' | 'LOAD_FAILED' | 'UNKNOWN_EXTENSION', message: string) {
-    super(message)
-    this.name = 'ExtensionServiceError'
-    this.code = code
+  constructor(code: ExtensionServiceError['code'], message: string) {
+    super(message); this.name = 'ExtensionServiceError'; this.code = code
   }
 }
 
@@ -30,8 +28,10 @@ function mapSupported(record: ExtensionRecord): VisibleExtension | null {
 export async function listCompanyExtensions(account: Account | null): Promise<VisibleExtension[]> {
   requireActiveCompany(account)
   try {
-    return (await listVisibleExtensions()).map(mapSupported).filter((extension): extension is VisibleExtension => extension !== null)
+    const visible = (await listVisibleExtensions()).map(mapSupported).filter((extension): extension is VisibleExtension => extension !== null)
+    return visible
   } catch {
+    captureUsage('extension.load_failed', { module_key: 'extensions', action_name: 'list_visible_extensions', safe_error_code: 'LOAD_FAILED', success: false })
     throw new ExtensionServiceError('LOAD_FAILED', 'Extensions could not be loaded. Try again.')
   }
 }
@@ -41,6 +41,7 @@ export async function loadTaskNotesSummary(account: Account | null): Promise<Tas
   try {
     return await repositoryLoadSummary()
   } catch {
+    captureUsage('extension.load_failed', { module_key: 'extensions', extension_key: 'task-notes-summary', action_name: 'load_summary', safe_error_code: 'LOAD_FAILED', success: false })
     throw new ExtensionServiceError('LOAD_FAILED', 'Task Notes Summary could not be loaded. Try again.')
   }
 }

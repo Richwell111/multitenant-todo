@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './authContext'
 import { AUTH_MESSAGES } from './authRepository'
 import { LoginValidationError, type Account } from './authService'
+import { AppPageShell } from '../../shared/ui'
 import { buildWorkspaceUrl, isSameOriginPath } from './workspaceUrl'
 
 function workspaceDestination(account: Extract<Account, { kind: 'company' }>): string {
@@ -40,7 +41,7 @@ function LoginPage() {
   }
 
   if (status === 'loading') {
-    return <main className="auth-layout"><section className="auth-card state-card"><h1>Company Login</h1><p className="muted">Checking your session...</p></section></main>
+    return <AppPageShell className="auth-layout"><section className="auth-card state-card"><h1>Company Login</h1><p className="muted">Checking your session...</p></section></AppPageShell>
   }
 
   if (account?.kind === 'platform-admin') return <Navigate to="/admin" replace />
@@ -48,22 +49,22 @@ function LoginPage() {
   if (account?.kind === 'company') {
     if (account.status === 'suspended') {
       return (
-        <main className="auth-layout">
+        <AppPageShell className="auth-layout">
           <section className="auth-card">
             <header><h1>Company Login</h1><p className="muted">Your account needs attention before you can continue.</p></header>
             <p className="alert alert-error" role="alert">{AUTH_MESSAGES.COMPANY_SUSPENDED}</p>
             <div className="form-actions"><button className="button-secondary" type="button" onClick={() => void signOut()}>Log out</button></div>
           </section>
-        </main>
+        </AppPageShell>
       )
     }
     const destination = workspaceDestination(account)
     if (isSameOriginPath(destination)) return <Navigate to={destination} replace />
-    return <main className="auth-layout"><section className="auth-card state-card"><h1>Company Login</h1><p>Opening your workspace...</p></section></main>
+    return <AppPageShell className="auth-layout"><section className="auth-card state-card"><h1>Company Login</h1><p>Opening your workspace...</p></section></AppPageShell>
   }
 
   return (
-    <main className="auth-layout">
+    <AppPageShell className="auth-layout">
       <section className="auth-card">
         <header><h1>Company Login</h1><p>Sign in to continue to your Company workspace.</p></header>
         {registered && <p className="alert alert-success" role="status">Company registration completed. Sign in to access your workspace.</p>}
@@ -82,7 +83,7 @@ function LoginPage() {
           <div className="form-actions"><button type="submit" disabled={pending}>{pending ? 'Signing in...' : 'Sign in'}</button></div>
         </form>
       </section>
-    </main>
+    </AppPageShell>
   )
 }
 

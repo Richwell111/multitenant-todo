@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import App from './App'
@@ -30,6 +30,11 @@ describe('App routing', () => {
   it('renders the admin page', () => {
     renderAt('/admin')
     expect(screen.getByRole('heading', { name: 'Platform Admin' })).toBeInTheDocument()
+  })
+
+  it('protects the customization requests route with the Platform Admin boundary', async () => {
+    renderAt('/admin/customization-requests')
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Platform Admin' })).toBeInTheDocument())
   })
 
   it('redirects an unknown route to the login page', () => {

@@ -26,10 +26,18 @@ describe('Platform Admin extension service', () => {
     await expect(loadPlatformAdminExtensions(admin)).resolves.toMatchObject({ extensions: [], assignments: [], companies: [company] })
   })
 
+  it('requires a controlled reason when disabling access', async () => {
+    companies.listCompanies.mockResolvedValue([company])
+    repository.setPrivateExtensionAssignment.mockResolvedValue({ companyId: company.id, extensionId: PRIVATE_EXTENSION_ID, enabled: false, createdAt: '2026-01-01T00:00:00Z' })
+    await expect(setPlatformAdminPrivateAssignment(admin, company.id, PRIVATE_EXTENSION_ID, false)).rejects.toMatchObject({ code: 'INVALID_ASSIGNMENT' })
+    await expect(setPlatformAdminPrivateAssignment(admin, company.id, PRIVATE_EXTENSION_ID, false, 'temporary_pause')).resolves.toBeDefined()
+    expect(repository.setPrivateExtensionAssignment).toHaveBeenCalledWith(company.id, PRIVATE_EXTENSION_ID, false, 'temporary_pause')
+  })
+
   it('only permits the fixed private extension and upserts enabled state', async () => {
     companies.listCompanies.mockResolvedValue([company]); repository.setPrivateExtensionAssignment.mockResolvedValue({ companyId: company.id, extensionId: PRIVATE_EXTENSION_ID, enabled: true, createdAt: '2026-01-01T00:00:00Z' })
     await setPlatformAdminPrivateAssignment(admin, company.id, PRIVATE_EXTENSION_ID, true)
-    expect(repository.setPrivateExtensionAssignment).toHaveBeenCalledWith(company.id, PRIVATE_EXTENSION_ID, true)
+    expect(repository.setPrivateExtensionAssignment).toHaveBeenCalledWith(company.id, PRIVATE_EXTENSION_ID, true, null)
     await expect(setPlatformAdminPrivateAssignment(admin, company.id, '11111111-1111-4111-8111-111111111111', true)).rejects.toMatchObject({ code: 'INVALID_ASSIGNMENT' })
   })
 })

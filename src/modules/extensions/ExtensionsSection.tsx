@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Account } from '../auth/authService'
+import { captureUsage } from '../diagnostics/diagnosticsService'
 import { ExtensionServiceError, listCompanyExtensions, loadTaskNotesSummary } from './extensionService'
 import type { TaskNotesSummary, VisibleExtension } from './extensionService'
 
@@ -8,6 +9,7 @@ function ExtensionsSection({ account }: { account: Extract<Account, { kind: 'com
   const [summary, setSummary] = useState<TaskNotesSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const reportedVisible = useRef(new Set<string>())
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -15,6 +17,12 @@ function ExtensionsSection({ account }: { account: Extract<Account, { kind: 'com
     try {
       const visible = await listCompanyExtensions(account)
       setExtensions(visible)
+      for (const extension of visible) {
+        if (reportedVisible.current.has(extension.key)) continue
+        reportedVisible.current.add(extension.key)
+        captureUsage('extension.visible', { module_key: 'extensions', extension_key: extension.key, action_name: 'visible', success: true })
+        captureUsage('extension.opened', { module_key: 'extensions', extension_key: extension.key, action_name: 'panel_viewed', success: true })
+      }
       if (visible.some((extension) => extension.key === 'task-notes-summary')) setSummary(await loadTaskNotesSummary(account))
       else setSummary(null)
     } catch (error: unknown) {

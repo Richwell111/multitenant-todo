@@ -403,10 +403,10 @@ Result: PHASE 6 COMPLETE
 
 ### Phase 6 validation
 
-- `npm run lint` â€” passed.
-- `npm run typecheck` â€” passed.
-- `npm run test` â€” passed: 15 files, 106 tests.
-- `npm run build` â€” passed.
+- `npm run lint` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â passed.
+- `npm run typecheck` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â passed.
+- `npm run test` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â passed: 15 files, 106 tests.
+- `npm run build` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â passed.
 - Manual browser verification was completed by the project owner and passed.
 
 ## Phase 7 Extension Test Implementation
@@ -438,10 +438,10 @@ Result: PHASE 7 COMPLETE
 
 ### Validation
 
-- `npm run lint` â€” passed.
-- `npm run typecheck` â€” passed.
-- `npm run test` â€” passed: 19 files, 114 tests.
-- `npm run build` â€” passed.
+- `npm run lint` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â passed.
+- `npm run typecheck` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â passed.
+- `npm run test` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â passed: 19 files, 114 tests.
+- `npm run build` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â passed.
 - Linked Cloud migration history is in parity through
   `20260721151000_fix_extension_assignment_rls.sql` for project
   `vckpgejyisetnggooxlf`.
@@ -513,3 +513,269 @@ Result: UI POLISH COMPLETE; Phase 8 diagnostics/deployment work has not started.
 - `npm run build` - passed.
 
 No Supabase queries, RLS policies, migrations, authentication behavior, routes, data flows, or Phase 8 diagnostics code were changed. No commit or push was performed.
+
+## Phase 8 PostHog Diagnostics Adapter
+
+Status: PostHog usage adapter implemented (Phase 8 diagnostics integration)
+
+### Package
+
+- Installed `posthog-js@1.406.2`.
+- `.env` remains ignored by Git; `git check-ignore -v .env` confirms
+  `.gitignore:14:.env`.
+
+### Files added
+
+- `src/modules/diagnostics/diagnosticsTypes.ts`
+- `src/modules/diagnostics/posthogAdapter.ts`
+- `src/modules/diagnostics/diagnosticsService.ts`
+- `src/modules/diagnostics/diagnostics.test.ts`
+- `src/modules/diagnostics/posthogAdapter.test.ts`
+
+### Files updated
+
+- `src/main.tsx`
+- `src/modules/auth/authService.ts`
+- `src/modules/auth/registrationService.ts`
+- `src/modules/companies/WorkspacePage.tsx`
+- `src/modules/tasks/taskService.ts`
+- `src/modules/licensing/licenceService.ts`
+- `src/modules/platform-admin/AdminPage.tsx`
+- `src/modules/platform-admin/platformAdminService.ts`
+- `src/modules/platform-admin/platformAdminExtensionService.ts`
+- `src/modules/extensions/extensionService.ts`
+- `.env.example`
+- `package.json`
+- `package-lock.json`
+
+### Architecture and integrated events
+
+Application modules call the provider-neutral diagnostics service; only the PostHog
+adapter imports `posthog-js`. Initialization occurs in `src/main.tsx` and is
+disabled in tests, when diagnostics are disabled, or when key/host configuration
+is missing.
+
+Integrated events cover authentication, registration/licensing, Todo creation,
+editing, completion/reopening/deletion, workspace view, Admin dashboard/status/
+licence actions, extension visibility/load failures, and private assignment
+enable/disable/action failures. Extension-open telemetry is emitted when the supported extension panel is opened.
+
+### Privacy controls
+
+- Explicit typed events only.
+- Autocapture, pageview, page-leave capture, and session recording disabled.
+- Identity is namespaced as `company:<auth-user-uuid>` or
+  `platform-admin:<auth-user-uuid>`.
+- Identification includes only account kind, release version, and environment.
+- Runtime property allowlist strips unknown keys and sensitive values, including
+  passwords, email, task content, licence values/hashes, tokens, headers, raw
+  errors, and request/response bodies.
+- Provider initialization, identity, reset, and capture failures are swallowed
+  and cannot affect application actions.
+- Logout resets the provider identity.
+
+### Validation
+
+- `npm run lint` - passed.
+- `npm run typecheck` - passed.
+- `npm run test` - passed: 21 files, 119 tests.
+- `npm run build` - passed.
+
+### Remaining setup
+
+The approved browser variables are `VITE_POSTHOG_KEY`,
+`VITE_POSTHOG_HOST`, `VITE_DIAGNOSTICS_ENABLED`,
+`VITE_APP_VERSION`, and `VITE_APP_ENVIRONMENT`. The ignored local `.env` uses the approved variable names. Its values were not read or printed.
+
+No PostHog setup wizard was used, no server secret was
+added, and no migrations or Cloud changes were made.
+
+Durable diagnostics tables, the Platform Admin diagnostics dashboard, and Phase 9
+deployment work remain outside this adapter pass. No commit or
+push was performed.
+
+## Phase 8 Sentry Diagnostics Adapter
+
+Status: Sentry adapter implemented; dashboard/provider deployment review remains.
+
+### Package and files
+
+- Installed `@sentry/react@10.67.0` and updated `package.json`/`package-lock.json`.
+- Added `src/modules/diagnostics/sentryAdapter.ts` and
+  `src/modules/diagnostics/sentryAdapter.test.ts`.
+- Updated `src/modules/diagnostics/diagnosticsTypes.ts`,
+  `src/modules/diagnostics/diagnosticsService.ts`, and `.env.example`.
+
+### Configuration and architecture
+
+- Sentry is initialized only when `VITE_DIAGNOSTICS_ENABLED=true`,
+  `VITE_SENTRY_DSN` is present, and runtime is not test mode.
+- The diagnostics service fans out to Sentry and PostHog adapters; application
+  modules do not import either provider SDK.
+- Release and environment metadata use `VITE_APP_VERSION` and
+  `VITE_APP_ENVIRONMENT`.
+- Browser tracing is sampled at 0.1. Session replay is disabled by default and
+  error replay is sampled at 1. Replay masks all text and inputs and blocks media.
+- Trace propagation is limited to `localhost` and the origin derived from the
+  configured Supabase URL.
+- Sentry logs and metrics integrations are not enabled; `sendDefaultPii` is false.
+
+### Privacy and failure handling
+
+- `beforeSend` and `beforeSendTransaction` remove request data, headers,
+  cookies, bodies, URLs/query data, credentials, task/licence values, raw error
+  messages, and forbidden nested keys.
+- User identity is limited to `company:<auth-user-uuid>` or
+  `platform-admin:<auth-user-uuid>`; email, username, and IP fields are removed.
+- Only allowlisted tags and scalar diagnostic metadata are attached.
+- Safe diagnostic failures use an internal error code and never forward the
+  original application error text. Provider failures are swallowed.
+- Logout resets Sentry identity through the provider-neutral service.
+
+### Validation
+
+- Focused Sentry/diagnostics tests pass: 2 files, 9 tests
+- Final validation passes: lint, typecheck, 22 test files / 125 tests, and build.
+- Build reports the existing non-blocking large-chunk warning (approximately 994 kB).
+
+### Remaining setup
+
+The local ignored `.env` must provide `VITE_SENTRY_DSN` alongside the existing
+safe diagnostics switches. Values are not read, printed, or committed. Sentry
+Dashboard project settings (retention, alerting, and source-map policy) remain
+manual review steps; no Sentry setup wizard or `@sentry/vite-plugin` was used.
+No commit or push was performed.
+
+## Phase 8 Durable Diagnostics and Usage Monitoring
+
+Status: PHASE 8 CODE COMPLETE - Cloud migration and manual verification pending.
+
+### Environment safety
+
+- Local `.env` contains the approved variable name `VITE_POSTHOG_KEY` and does
+  not contain `VITE_POSTHOG_PROJECT_TOKEN`; values were not read or printed.
+- `.env` remains ignored and untracked.
+
+### Database migration and security boundary
+
+- Added `supabase/migrations/20260722070351_phase8_diagnostics.sql`.
+- Added `supabase/tests/diagnostics.sql`.
+- Migration creates only `extension_assignment_events`, `feature_requests`, and
+  `release_records`; no generic `operational_events` table was added.
+- All three tables have forced RLS, Platform Admin read policies, no anonymous
+  access, and no browser insert/update/delete grants.
+- `set_private_extension_assignment` is a restricted `SECURITY DEFINER` RPC
+  with a fixed `search_path`, Platform Admin membership check, private-feature
+  restriction, controlled disablement reasons, and atomic assignment/history
+  writes.
+- Direct authenticated assignment INSERT/UPDATE privileges and policies are
+  removed; browser assignment changes use the RPC only.
+
+### Assignment lifecycle
+
+- Enabling requires no reason.
+- Disabling requires one of the controlled reasons from the approved
+  specification.
+- Repeated state writes are idempotent and do not create duplicate history.
+- Lifecycle rows record Company, feature, state, timestamp, reason, and actor.
+
+### Admin diagnostics
+
+- Added `/admin/diagnostics` with Platform Admin-only access.
+- Displays app version, environment, Sentry/PostHog configured state, enabled
+  assignments by feature, recent lifecycle events, disablement reasons,
+  read-only feature requests, and release records.
+- Empty, loading, retry, and provider-unavailable states are explicit.
+- The page does not query or render tasks, licence contents, credentials, raw
+  errors, or provider analytics.
+- Added Core Features, Shared Features, and Private Customizations terminology
+  to the Admin feature section while preserving existing assignment controls.
+- Added duplicate-safe `admin.features_viewed` and
+  `admin.diagnostics_viewed` events.
+
+### Validation
+
+- Focused diagnostics/feature-management tests: 6 files, 12 tests � passed.
+- `npm run lint` � passed.
+- `npm run typecheck` � passed.
+- `npm run test` — passed: 28 files, 136 tests.
+- `npm run build` — passed with the existing large-chunk warning (approximately 1,007 kB).
+
+### Cloud and manual blockers
+
+- Cloud migration has not been applied.
+- SQL/RLS verification has not run against Cloud.
+- Local `supabase db lint --local --schema public --fail-on error` could not
+  connect because no local Postgres instance is running. Docker/local Supabase
+  remains intentionally disabled by project rules.
+- Cloud migration review, Security Advisor, lifecycle/RLS verification, and
+  browser checks remain required before Phase 8 can be operationally complete.
+- No commit or push was performed.
+
+## Phase 8 Feature Management and Customization Requests
+
+Status: feature-management code implemented; Cloud migration and manual verification remain pending.
+
+- Core Features now come from the typed static application registry in
+  `src/modules/platform-admin/coreFeatureRegistry.ts`; they are active,
+  read-only, and have no assignment controls.
+- Shared Features and Private Customizations continue to use the existing
+  `extensions` and `company_extensions` tables and preserve private assignment
+  confirmation, pending, retry, and safe-error behavior.
+- Added Platform Admin-only `/admin/customization-requests` with read-only
+  lifecycle display and loading, empty, populated, error, and retry states.
+- Company availability is derived from the extension definition and current
+  assignment state; no duplicate availability column was added.
+- The Phase 8 diagnostics migration now bounds `requested_outcome` to 500
+  characters and uses `shared_feature` and `private_customization` enum values.
+- Added repository, service, UI, registry, and routing tests. Requested outcome
+  is rendered only in the Admin UI and is never sent to diagnostics telemetry.
+- Updated navigation includes Overview, Companies and licences, Features,
+  Customization Requests, and Diagnostics.
+
+Cloud migration, SQL/RLS verification, Security Advisor review, and manual
+browser verification remain pending. No commit or push was performed.
+## Phase 8 UI Alignment and Layout Polish
+
+Status: UI polish implemented; browser review and unrestricted runtime validation remain pending.
+
+### Pages polished
+
+- Company Login and Registration use the shared page shell and responsive card layout.
+- Company Workspace uses the shared shell/header with improved spacing, task-action grouping,
+  summary cards, and contained task tables/lists.
+- Platform Admin Overview, Features, Diagnostics, and Customization Requests use consistent
+  centered content, headers, section cards, navigation, and table containers.
+- Customization Requests use a readable desktop table and mobile request cards with all
+  lifecycle fields and complete availability labels.
+
+### Reusable UI and accessibility
+
+- Added `src/shared/ui.tsx` primitives for page shells, headers, cards, badges, and states.
+- Added active-state Admin navigation for Overview, Companies, Licences, Features,
+  Customization Requests, and Diagnostics.
+- Added semantic table captions, responsive card field labels, visible focus states,
+  accessible loading/error/status feedback, and status text in addition to color.
+- Added contained horizontal scrolling for wide desktop tables and page-level overflow
+  protection.
+
+### Responsive review
+
+- CSS breakpoints cover approximately 375px, 768px, 1280px, and 1440px layouts.
+- Mobile Customization Requests switch from a wide table to labeled cards.
+- Forms, buttons, navigation, summary grids, and task actions stack within narrow widths.
+- Manual browser verification at each target width remains pending.
+
+### Validation
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — blocked in the sandbox by Vite `spawn EPERM` during config loading.
+- `npm run build` — blocked in the sandbox by Vite `spawn EPERM` during config loading.
+- Previous unrestricted Phase 8 validation passed with 28 files and 136 tests; this polish
+  pass requires a fresh unrestricted test/build run.
+- No business logic, auth behavior, telemetry meanings, RLS, or migrations were changed.
+
+Remaining Phase 8 work: migration review/application, Cloud SQL/RLS verification, Security
+Advisor review, manual browser verification, and unrestricted test/build validation. No
+commit or push was performed.

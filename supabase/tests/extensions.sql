@@ -21,6 +21,20 @@ exception when insufficient_privilege then return true;
 end;
 $$;
 
+create function pg_temp.assignment_update_is_denied(target_company_id uuid, target_extension_id uuid)
+returns boolean
+language plpgsql
+as $$
+begin
+  update public.company_extensions
+     set enabled = not enabled
+   where company_id = target_company_id
+     and extension_id = target_extension_id;
+  return false;
+exception when insufficient_privilege then return true;
+end;
+$$;
+
 create function pg_temp.invalid_extension_is_rejected()
 returns boolean
 language plpgsql
@@ -96,15 +110,33 @@ set local role authenticated;
 select pg_temp.assert_true((select count(*) = 2 from public.extensions), 'Platform Admin sees all extensions');
 select pg_temp.assert_true((select count(*) = 1 from public.company_extensions), 'Platform Admin sees assignments');
 
-insert into public.company_extensions (company_id, extension_id, enabled)
-values ('40000000-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222222222', true)
-on conflict (company_id, extension_id) do update set enabled = excluded.enabled;
-select pg_temp.assert_true((select enabled from public.company_extensions where company_id = '40000000-0000-0000-0000-000000000001'), 'Platform Admin can enable private assignment');
+select pg_temp.assert_true(
+  pg_temp.assignment_insert_is_denied('40000000-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222222222')
+  and pg_temp.assignment_update_is_denied('40000000-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222222222'),
+  'Platform Admin cannot mutate assignments directly from the browser'
+);
 
-insert into public.company_extensions (company_id, extension_id, enabled)
-values ('40000000-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222222222', false)
-on conflict (company_id, extension_id) do update set enabled = excluded.enabled;
-select pg_temp.assert_true((select not enabled from public.company_extensions where company_id = '40000000-0000-0000-0000-000000000001'), 'Platform Admin can disable private assignment');
+select pg_temp.assert_true(
+  (select count(*) = 1 from public.set_private_extension_assignment(
+    '40000000-0000-0000-0000-000000000001',
+    '22222222-2222-4222-8222-222222222222',
+    true,
+    null
+  )),
+  'Platform Admin can enable private assignment through the restricted RPC'
+);
+select pg_temp.assert_true((select enabled from public.company_extensions where company_id = '40000000-0000-0000-0000-000000000001'), 'RPC enable persists assignment');
+
+select pg_temp.assert_true(
+  (select count(*) = 1 from public.set_private_extension_assignment(
+    '40000000-0000-0000-0000-000000000001',
+    '22222222-2222-4222-8222-222222222222',
+    false,
+    'temporary_pause'
+  )),
+  'Platform Admin can disable private assignment with a controlled reason'
+);
+select pg_temp.assert_true((select not enabled from public.company_extensions where company_id = '40000000-0000-0000-0000-000000000001'), 'RPC disable persists assignment');
 select pg_temp.assert_true((select count(*) = 0 from public.tasks), 'Platform Admin receives no task rows through extensions');
 
 reset role;

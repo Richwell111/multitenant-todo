@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { useAuth } from '../auth/authContext'
+import { captureUsage } from '../diagnostics/diagnosticsService'
 import { AUTH_MESSAGES } from '../auth/authRepository'
 import { evaluateAdminAccess, LoginValidationError } from '../auth/authService'
 import { LicenceApiError } from '../licensing/licenceRepository'
 import { LicenceValidationError } from '../licensing/licenceService'
 import { changeCompanyStatus, generateLicence, loadDashboard, type PlatformAdminSnapshot } from './platformAdminService'
 import PlatformAdminExtensions from './PlatformAdminExtensions'
+import AdminNavigation from './AdminNavigation'
 
 function AdminLoginForm() {
   const { signIn } = useAuth()
@@ -90,10 +93,11 @@ function AdminDashboard({ account, signOut }: { account: Extract<NonNullable<Ret
   const [actionError, setActionError] = useState('')
   const [success, setSuccess] = useState('')
   const [pendingId, setPendingId] = useState('')
+  const dashboardViewed = useRef(false)
 
   const refresh = useCallback(async () => {
     setLoading(true); setError('')
-    try { setSnapshot(await loadDashboard(account)) }
+    try { const loaded = await loadDashboard(account); setSnapshot(loaded); if (!dashboardViewed.current) { dashboardViewed.current = true; captureUsage('admin.dashboard_viewed', { module_key: 'platform-admin', action_name: 'dashboard_viewed', success: true }) } }
     catch (e) { setError(e instanceof Error ? e.message : 'Unable to load Platform Admin data') }
     finally { setLoading(false) }
   }, [account])
@@ -110,7 +114,7 @@ function AdminDashboard({ account, signOut }: { account: Extract<NonNullable<Ret
   }
 
   if (loading && !snapshot) return <div className="stack-gap"><div className="page-header-actions"><button className="button-secondary" type="button" onClick={() => void signOut()}>Log out</button></div><p className="state">Loading Platform Admin data...</p><GenerateLicenceForm account={account} onGenerated={() => void refresh()} /><PlatformAdminExtensions account={account} /></div>
-  if (error && !snapshot) return <div className="stack-gap"><div className="page-header-actions"><button className="button-secondary" type="button" onClick={() => void signOut()}>Log out</button></div><section className="section-card"><p className="alert alert-error" role="alert">{error}</p><div className="state-actions"><button className="button-secondary" type="button" onClick={() => void refresh()}>Retry</button></div></section><GenerateLicenceForm account={account} onGenerated={() => void refresh()} /><PlatformAdminExtensions account={account} /></div>
+  if (error && !snapshot) return <div className="stack-gap"><div className="page-header-actions"><button className="button-secondary" type="button" onClick={() => void signOut()}>Log out</button></div><section id="overview" className="section-card"><p className="alert alert-error" role="alert">{error}</p><div className="state-actions"><button className="button-secondary" type="button" onClick={() => void refresh()}>Retry</button></div></section><GenerateLicenceForm account={account} onGenerated={() => void refresh()} /><PlatformAdminExtensions account={account} /></div>
   if (!snapshot) return null
 
   return (
@@ -129,8 +133,8 @@ function AdminDashboard({ account, signOut }: { account: Extract<NonNullable<Ret
           <div className="summary-card"><span className="summary-label">Redeemed</span><strong className="summary-value">{snapshot.counts.redeemedLicences}</strong></div><div className="summary-card"><span className="summary-label">Expired</span><strong className="summary-value">{snapshot.counts.expiredLicences}</strong></div><div className="summary-card"><span className="summary-label">Revoked</span><strong className="summary-value">{snapshot.counts.revokedLicences}</strong></div>
         </div>
       </section>
-      <section className="section-card"><div className="section-heading"><h2>Companies</h2><span className="muted">{snapshot.companies.length} registered</span></div>{snapshot.companies.length === 0 ? <p className="state">No Companies found.</p> : <div className="table-scroll"><table><thead><tr><th>Name</th><th>Email</th><th>Slug</th><th>Status</th><th>Created</th><th>Action</th></tr></thead><tbody>{snapshot.companies.map((company) => <tr key={company.id}><td>{company.name}</td><td>{company.email}</td><td>{company.slug}</td><td><span className={`status-badge status-${company.status}`}>{company.status}</span></td><td>{new Date(company.createdAt).toLocaleDateString()}</td><td><button className="button-inline" type="button" disabled={pendingId === company.id} onClick={() => void toggle(company)}>{company.status === 'active' ? 'Suspend' : 'Reactivate'}</button></td></tr>)}</tbody></table></div>}</section>
-      <section className="section-card"><div className="section-heading"><h2>Licences</h2><span className="muted">{snapshot.licences.length} total</span></div>{snapshot.licences.length === 0 ? <p className="state">No licences found.</p> : <div className="table-scroll"><table><thead><tr><th>Company</th><th>Prefix</th><th>Status</th><th>Expires</th><th>Created</th><th>Redeemed</th></tr></thead><tbody>{snapshot.licences.map((licence) => <tr key={licence.id}><td>{licence.companyName}</td><td><code>{licence.keyPrefix}</code></td><td><span className={`status-badge status-${licence.displayStatus.toLowerCase()}`}>{licence.displayStatus}</span></td><td>{new Date(licence.expiresAt).toLocaleDateString()}</td><td>{new Date(licence.createdAt).toLocaleDateString()}</td><td>{licence.redeemedAt ? new Date(licence.redeemedAt).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>}</section>
+      <section id="companies" className="section-card"><div className="section-heading"><h2>Companies</h2><span className="muted">{snapshot.companies.length} registered</span></div>{snapshot.companies.length === 0 ? <p className="state">No Companies found.</p> : <div className="table-scroll"><table><thead><tr><th>Name</th><th>Email</th><th>Slug</th><th>Status</th><th>Created</th><th>Action</th></tr></thead><tbody>{snapshot.companies.map((company) => <tr key={company.id}><td>{company.name}</td><td>{company.email}</td><td>{company.slug}</td><td><span className={`status-badge status-${company.status}`}>{company.status}</span></td><td>{new Date(company.createdAt).toLocaleDateString()}</td><td><button className="button-inline" type="button" disabled={pendingId === company.id} onClick={() => void toggle(company)}>{company.status === 'active' ? 'Suspend' : 'Reactivate'}</button></td></tr>)}</tbody></table></div>}</section>
+      <section id="licences" className="section-card"><div className="section-heading"><h2>Licences</h2><span className="muted">{snapshot.licences.length} total</span></div>{snapshot.licences.length === 0 ? <p className="state">No licences found.</p> : <div className="table-scroll"><table><thead><tr><th>Company</th><th>Prefix</th><th>Status</th><th>Expires</th><th>Created</th><th>Redeemed</th></tr></thead><tbody>{snapshot.licences.map((licence) => <tr key={licence.id}><td>{licence.companyName}</td><td><code>{licence.keyPrefix}</code></td><td><span className={`status-badge status-${licence.displayStatus.toLowerCase()}`}>{licence.displayStatus}</span></td><td>{new Date(licence.expiresAt).toLocaleDateString()}</td><td>{new Date(licence.createdAt).toLocaleDateString()}</td><td>{licence.redeemedAt ? new Date(licence.redeemedAt).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>}</section>
       <GenerateLicenceForm account={account} onGenerated={() => void refresh()} />
       <PlatformAdminExtensions account={account} />
     </div>
@@ -141,7 +145,7 @@ function AdminPage() {
   const { status, account, signOut } = useAuth()
   if (status === 'loading') return <main className="auth-layout"><section className="auth-card state-card"><h1>Platform Admin</h1><p className="muted">Checking your session...</p></section></main>
   const access = evaluateAdminAccess(account)
-  return <main className="page-shell"><header className="page-header"><div><h1>Platform Admin</h1><p>Manage Companies and licences from one shared platform.</p></div></header>{access === 'unauthenticated' && <AdminLoginForm />}{access === 'ADMIN_ONLY' && <section className="auth-card"><p className="alert alert-error" role="alert">{AUTH_MESSAGES.ADMIN_ONLY}</p><div className="form-actions"><button className="button-secondary" type="button" onClick={() => void signOut()}>Log out</button></div></section>}{access === 'allowed' && account?.kind === 'platform-admin' && <AdminDashboard account={account} signOut={signOut} />}</main>
+  return <main className="page-shell"><header className="page-header"><div><h1>Platform Admin</h1><p>Manage Companies and licences from one shared platform.</p><AdminNavigation /></div></header>{access === 'unauthenticated' && <AdminLoginForm />}{access === 'ADMIN_ONLY' && <section className="auth-card"><p className="alert alert-error" role="alert">{AUTH_MESSAGES.ADMIN_ONLY}</p><div className="form-actions"><button className="button-secondary" type="button" onClick={() => void signOut()}>Log out</button></div></section>}{access === 'allowed' && account?.kind === 'platform-admin' && <AdminDashboard account={account} signOut={signOut} />}</main>
 }
 
 export default AdminPage

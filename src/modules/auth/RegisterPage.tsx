@@ -4,6 +4,7 @@ import { useAuth } from './authContext'
 import { RegistrationApiError } from './registrationRepository'
 import { suggestWorkspaceSlug } from './registrationSchemas'
 import { RegistrationValidationError, submitRegistration } from './registrationService'
+import { AppPageShell } from '../../shared/ui'
 import { buildWorkspaceUrl } from './workspaceUrl'
 
 const initialForm = {
@@ -59,35 +60,35 @@ function RegisterPage() {
   }
 
   if (status === 'loading') {
-    return <main className="auth-layout"><section className="auth-card state-card"><h1>Company Registration</h1><p className="muted">Checking your session...</p></section></main>
+    return <AppPageShell className="auth-layout"><section className="auth-card state-card"><h1>Company Registration</h1><p className="muted">Checking your session...</p></section></AppPageShell>
   }
 
   if (account?.kind === 'platform-admin') {
     return (
-      <main className="auth-layout">
+      <AppPageShell className="auth-layout">
         <section className="auth-card">
           <header><h1>Company Registration</h1><p className="muted">Sign out of the current account before registering another Company.</p></header>
           <p className="alert alert-error">You are currently signed in as a Platform Admin.</p>
           <div className="form-actions"><button className="button-secondary" type="button" onClick={() => navigate('/admin')}>Return to Admin</button><button type="button" onClick={() => void signOut()}>Log out and register a Company</button></div>
         </section>
-      </main>
+      </AppPageShell>
     )
   }
 
   if (account?.kind === 'company') {
     return (
-      <main className="auth-layout">
+      <AppPageShell className="auth-layout">
         <section className="auth-card">
           <header><h1>Company Registration</h1><p className="muted">Sign out of the current account before registering another Company.</p></header>
           <p className="alert alert-error">You are already signed in to a Company account.</p>
           <div className="form-actions"><button className="button-secondary" type="button" onClick={returnToWorkspace}>Return to Workspace</button><button type="button" onClick={() => void signOut()}>Log out and register another Company</button></div>
         </section>
-      </main>
+      </AppPageShell>
     )
   }
 
   return (
-    <main className="auth-layout">
+    <AppPageShell className="auth-layout">
       <section className="auth-card">
         <header><h1>Company Registration</h1><p>Use a valid licence to create a new Company workspace.</p></header>
         <form onSubmit={handleSubmit} noValidate>
@@ -106,7 +107,7 @@ function RegisterPage() {
           <div className="form-actions"><button type="submit" disabled={pending}>{pending ? 'Registering...' : 'Register Company'}</button></div>
         </form>
       </section>
-    </main>
+    </AppPageShell>
   )
 }
 
