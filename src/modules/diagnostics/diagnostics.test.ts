@@ -19,11 +19,15 @@ function providerFixture() {
 beforeEach(() => resetDiagnosticsForTests())
 
 describe('diagnostics service', () => {
-  it('uses a namespaced pseudonymous identity and safe release metadata', () => {
+  it('uses a namespaced pseudonymous identity and safe release metadata', async () => {
     const provider = providerFixture()
     configureDiagnosticsForTests(provider)
-    identifyAccount('company', 'user-123')
-    expect(provider.identify).toHaveBeenCalledWith('company:user-123', expect.objectContaining({
+    await identifyAccount('company', 'user-123')
+    const [distinctId, properties] = provider.identify.mock.calls[0]
+    // The raw UUID must never leave: identity is a company-prefixed SHA-256 digest.
+    expect(distinctId).toMatch(/^company:[0-9a-f]{64}$/)
+    expect(distinctId).not.toContain('user-123')
+    expect(properties).toEqual(expect.objectContaining({
       account_kind: 'company',
       release_version: expect.any(String),
       environment: expect.any(String),

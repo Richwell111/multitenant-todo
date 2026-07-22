@@ -38,7 +38,7 @@ export async function signIn(input: LoginFormInput): Promise<Account> {
       await repositorySignOut()
       throw new AuthApiError('ACCOUNT_INVALID')
     }
-    identifyAccount(account.kind, userId)
+    void identifyAccount(account.kind, userId)
     captureUsage('auth.login_succeeded', { module_key: 'auth', action_name: 'sign_in', success: true })
     return account
   } catch (error) {
@@ -64,7 +64,7 @@ export async function restoreSession(): Promise<Account | null> {
       await repositorySignOut()
       return null
     }
-    identifyAccount(account.kind, userId)
+    void identifyAccount(account.kind, userId)
     captureUsage('auth.session_restored', { module_key: 'auth', action_name: 'restore_session', success: true })
     return account
   } catch {
