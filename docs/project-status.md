@@ -403,10 +403,10 @@ Result: PHASE 6 COMPLETE
 
 ### Phase 6 validation
 
-- `npm run lint` — passed.
-- `npm run typecheck` — passed.
-- `npm run test` — passed: 15 files, 106 tests.
-- `npm run build` — passed.
+- `npm run lint` â€” passed.
+- `npm run typecheck` â€” passed.
+- `npm run test` â€” passed: 15 files, 106 tests.
+- `npm run build` â€” passed.
 - Manual browser verification was completed by the project owner and passed.
 
 ## Phase 7 Extension Test Implementation
@@ -438,10 +438,10 @@ Result: PHASE 7 COMPLETE
 
 ### Validation
 
-- `npm run lint` — passed.
-- `npm run typecheck` — passed.
-- `npm run test` — passed: 19 files, 114 tests.
-- `npm run build` — passed.
+- `npm run lint` â€” passed.
+- `npm run typecheck` â€” passed.
+- `npm run test` â€” passed: 19 files, 114 tests.
+- `npm run build` â€” passed.
 - Linked Cloud migration history is in parity through
   `20260721151000_fix_extension_assignment_rls.sql` for project
   `vckpgejyisetnggooxlf`.
@@ -474,3 +474,42 @@ Completed by the project owner and passed:
 - Todo behavior and schema remain unchanged; no priority field was introduced.
 
 Phase 7 is complete. No commit or push was performed.
+## UI Polish Pass (before Phase 8)
+
+Result: UI POLISH COMPLETE; Phase 8 diagnostics/deployment work has not started.
+
+### UI files changed
+
+- `src/index.css`
+- `src/modules/auth/LoginPage.tsx`
+- `src/modules/auth/RegisterPage.tsx`
+- `src/modules/companies/WorkspacePage.tsx`
+- `src/modules/extensions/ExtensionsSection.tsx`
+- `src/modules/platform-admin/AdminPage.tsx`
+- `src/modules/platform-admin/PlatformAdminExtensions.tsx`
+
+### Pages and components polished
+
+- Company login and registration now use centered responsive cards, clearer supporting text, consistent fields, validation/error treatments, and visible focus states.
+- Platform Admin sign-in, overview, Company/licence tables, licence generation, one-time key result, and extension assignment controls now share the same cards, buttons, status badges, table overflow, and feedback states.
+- Company workspace dashboard, task form/list/edit actions, loading/error/empty/success states, and extension panels now have consistent spacing and readable status treatment.
+- No new UI framework or large design-system abstraction was introduced; the existing page components and CSS are reused.
+
+### Responsive and accessibility review
+
+- Global layout is constrained with safe page padding and a readable content width.
+- Summary and extension cards collapse to one column below 700px; action groups wrap below 430px.
+- Tables use horizontal overflow containers for narrow screens.
+- Inputs retain explicit labels and validation relationships.
+- Buttons retain semantic elements, clear names, disabled states, keyboard focus outlines, and distinct destructive styling.
+- Statuses retain visible text labels and are not communicated by color alone.
+- Static CSS/layout review covered approximately 375px, 768px, and 1280px widths. A live browser visual pass remains a review item.
+
+### Validation
+
+- `npm run lint` - passed.
+- `npm run typecheck` - passed.
+- `npm run test` - passed: 19 files, 114 tests.
+- `npm run build` - passed.
+
+No Supabase queries, RLS policies, migrations, authentication behavior, routes, data flows, or Phase 8 diagnostics code were changed. No commit or push was performed.
