@@ -15,16 +15,17 @@ const snapshot = { extensions: [{ id: '11111111-1111-4111-8111-111111111111', ke
 beforeEach(() => { vi.clearAllMocks(); service.loadPlatformAdminExtensions.mockResolvedValue(snapshot); service.setPlatformAdminPrivateAssignment.mockResolvedValue({ companyId: company.id, extensionId: snapshot.extensions[0].id, enabled: true, createdAt: '2026-01-01T00:00:00Z' }); vi.stubGlobal('confirm', vi.fn(() => true)) })
 
 describe('PlatformAdminExtensions', () => {
-  it('separates static core, shared, and private features', async () => {
+  it('renders customizations & extensions with user-facing feature types and Company Access', async () => {
     render(<PlatformAdminExtensions account={account} />)
-    expect(await screen.findByRole('heading', { name: 'Core Features' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Shared Features' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Private Customizations' })).toBeInTheDocument()
-    const coreCard = screen.getByText('Company authentication').closest('article')
-    expect(coreCard?.querySelector('button')).toBeNull()
+    expect(await screen.findByText('Shared Extension')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Customizations & Extensions/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Company Access' })).toBeInTheDocument()
+    expect(screen.getByText('Private Customization')).toBeInTheDocument()
+    expect(screen.getByText('Available — Not Enabled')).toBeInTheDocument()
+    expect(screen.queryByText(/task title|task content/i)).not.toBeInTheDocument()
   })
 
-  it('renders registry and enables a private assignment after confirmation', async () => {
+  it('enables a private assignment after confirmation', async () => {
     render(<PlatformAdminExtensions account={account} />)
     expect((await screen.findAllByText('Priority Labels Demo')).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('button', { name: 'Enable' }))

@@ -118,7 +118,7 @@ describe('Registration hand-off', () => {
 })
 
 describe('Platform Admin login', () => {
-  it('signs a Platform Admin in at /admin and shows licence generation', async () => {
+  it('signs a Platform Admin in at /admin and shows the Admin area', async () => {
     service.signIn.mockResolvedValue(adminAccount)
     renderAt('/admin')
 
@@ -126,21 +126,23 @@ describe('Platform Admin login', () => {
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'correct-password' } })
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
-    expect(await screen.findByRole('heading', { name: 'Generate Licence' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Overview' })).toBeInTheDocument()
+    // Licence generation is reachable from the Admin sidebar (now at /admin/licences).
+    expect(screen.getByRole('link', { name: 'Licences' })).toBeInTheDocument()
   })
 
   it('redirects a Platform Admin who signs in at /login to /admin', async () => {
     service.restoreSession.mockResolvedValue(adminAccount)
     renderAt('/login')
 
-    expect(await screen.findByRole('heading', { name: 'Generate Licence' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Overview' })).toBeInTheDocument()
   })
 
   it('shows the admin sign-in state when unauthenticated', async () => {
     renderAt('/admin')
 
     expect(await screen.findByRole('heading', { name: 'Platform Admin Sign In' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Generate Licence' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 1, name: 'Overview' })).not.toBeInTheDocument()
   })
 })
 
@@ -151,7 +153,7 @@ describe('Route guards', () => {
 
     expect(await screen.findByRole('alert'))
       .toHaveTextContent('This account cannot access the Platform Admin area.')
-    expect(screen.queryByRole('heading', { name: 'Generate Licence' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 1, name: 'Overview' })).not.toBeInTheDocument()
   })
 
   it('blocks a Platform Admin from a Company workspace', async () => {

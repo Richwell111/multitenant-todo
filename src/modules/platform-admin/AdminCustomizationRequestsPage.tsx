@@ -1,19 +1,16 @@
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../auth/authContext'
-import { AUTH_MESSAGES } from '../auth/authRepository'
-import { evaluateAdminAccess } from '../auth/authService'
-import { AppPageShell, PageHeader } from '../../shared/ui'
-import AdminNavigation from './AdminNavigation'
+import { PageHeader } from '../../shared/ui'
 import PlatformAdminCustomizationRequests from './PlatformAdminCustomizationRequests'
+import { useAdminOutlet } from './adminContext'
 
+// Auth is enforced by the shared AdminLayout; this page only renders content.
 function AdminCustomizationRequestsPage() {
-  const { status, account, signOut } = useAuth()
-  if (status === 'loading') return <AppPageShell className="auth-layout"><section className="auth-card state-card"><h1>Customization Requests</h1><p className="muted">Checking your session...</p></section></AppPageShell>
-  const access = evaluateAdminAccess(account)
-  if (access === 'unauthenticated') return <Navigate to="/admin" replace />
-  if (access === 'ADMIN_ONLY') return <AppPageShell><section className="auth-card"><p className="alert alert-error" role="alert">{AUTH_MESSAGES.ADMIN_ONLY}</p><div className="form-actions"><button className="button-secondary" type="button" onClick={() => void signOut()}>Log out</button></div></section></AppPageShell>
-  if (!account || account.kind !== 'platform-admin') return null
-  return <AppPageShell><PageHeader title="Customization Requests" description="Read-only request and delivery lifecycle." nav={<AdminNavigation />} /><PlatformAdminCustomizationRequests account={account} /></AppPageShell>
+  const { account } = useAdminOutlet()
+  return (
+    <div className="app-page-shell">
+      <PageHeader title="Customization Requests" description="Read-only request and delivery lifecycle across Companies." />
+      <PlatformAdminCustomizationRequests account={account} />
+    </div>
+  )
 }
 
 export default AdminCustomizationRequestsPage

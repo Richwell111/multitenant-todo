@@ -779,3 +779,226 @@ Status: UI polish implemented; browser review and unrestricted runtime validatio
 Remaining Phase 8 work: migration review/application, Cloud SQL/RLS verification, Security
 Advisor review, manual browser verification, and unrestricted test/build validation. No
 commit or push was performed.
+
+## Phase 8 Admin Navigation and Feature UI
+
+Status: ADMIN NAVIGATION AND FEATURE UI COMPLETE (code); manual browser verification and the
+prior Phase 8 Cloud/migration blockers remain.
+
+### Root cause of the broken Features navigation
+
+The Admin navigation linked to in-page hash anchors (`/admin#overview`, `/admin#companies`,
+`/admin#licences`, `/admin#features`) that all resolved to the single `/admin` route. `AdminPage`
+rendered one monolithic dashboard with every section stacked at once; nothing rendered or scrolled
+based on the hash, and React Router does not switch pages on a hash change. The hash was consumed
+only to compute the active-link highlight, so clicking Features changed the URL to `/admin#features`
+while the same full page continued rendering from the top (Overview). Cause: route configuration
+(hash anchors used instead of real routes) plus no hash-driven rendering. Customization Requests and
+Diagnostics were already real routes and worked.
+
+### Routing changes
+
+- Replaced hash navigation with real nested routes under one shared layout: `/admin` (Overview),
+  `/admin/companies`, `/admin/licences`, `/admin/features`, `/admin/customization-requests`,
+  `/admin/diagnostics`.
+- Direct navigation, refresh, and Back/Forward now load the correct page; the active item is marked
+  with `aria-current="page"` via `NavLink`.
+
+### Admin layout and files
+
+- `AdminLayout.tsx` (new): the single protected shell and the only Admin auth guard. Renders the
+  session-check state, the shared Admin login for unauthenticated visitors, the `ADMIN_ONLY` refusal
+  for Company accounts, and the sidebar shell with `<Outlet>` for authenticated Platform Admins.
+- `adminContext.ts` (new): `useAdminOutlet` supplies the account/signOut to pages; no page duplicates
+  the guard.
+- `AdminNavigation.tsx` (rewritten): vertical sidebar of real-route `NavLink`s with inline icons.
+- `AdminLoginForm.tsx` (new, extracted from the old `AdminPage`).
+- Pages separated from the old monolith: `AdminOverviewPage.tsx`, `AdminCompaniesPage.tsx`,
+  `AdminLicencesPage.tsx`, `AdminFeaturesPage.tsx`. `AdminDiagnosticsPage.tsx` and
+  `AdminCustomizationRequestsPage.tsx` were reduced to content wrappers inside the layout.
+- `AdminPage.tsx` removed. `App.tsx` updated to the nested route tree.
+- `src/index.css`: added the Admin application shell (fixed desktop sidebar, mobile top bar with an
+  accessible menu button, off-canvas drawer, scrim). `src/modules/diagnostics/diagnosticsTypes.ts`:
+  added `admin.overview_viewed`, `admin.companies_viewed`, `admin.licences_viewed`.
+
+### Standard Features table
+
+- `/admin/features` section A lists the static Core Feature registry read-only (Feature, Description,
+  Category, Availability = "All active Companies", a "Standard" status badge, Companies covered).
+- No enable/disable and no per-Company assignment controls.
+
+### Customizations & Extensions table
+
+- `/admin/features` section B (refactored `PlatformAdminExtensions`) uses business terminology:
+  "Customizations & Extensions" and "Company Access". User-facing feature types are "Shared Extension"
+  and "Private Customization". Per-Company availability shows Enabled / Disabled / "Available — Not
+  Enabled".
+- Existing assignment authorization is preserved: only the deployed private proof extension is
+  assignable, disabling still requires an approved controlled reason, and lifecycle history is written
+  through the existing `set_private_extension_assignment` RPC. No task content is rendered.
+
+### Preserved behavior
+
+- No change to `platformAdminService`/repository (counts, `changeCompanyStatus`, `generateLicence`),
+  the extension/customization/diagnostics services and repositories, `coreFeatureRegistry`,
+  `evaluateAdminAccess`, `AuthProvider`, Supabase queries, RLS, tenant isolation, licence generation,
+  or Company suspension. Overview reuses the existing count calculations unchanged.
+
+### Responsive and accessibility review
+
+- CSS reviewed at ~375px, 768px, 1280px, and 1440px. Desktop uses a fixed sidebar; below 900px it
+  collapses to an accessible menu-button drawer with a scrim, and wide tables switch to mobile cards.
+- Semantic `nav`/`main`/tables, `aria-current` active state, `aria-expanded`/`aria-controls` on the
+  menu button, visible focus states, labelled inputs, real `button`/`a` elements, and status text
+  (not colour alone) throughout. A safe search box was intentionally omitted because it would not yet
+  perform a real local filter.
+
+### Validation
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed: 32 files, 153 tests.
+- `npm run build` — passed (existing ~1,025 kB large-chunk warning only).
+- `git diff --check` — clean (informational LF/CRLF notices only).
+
+### Remaining Phase 8 work
+
+- Cloud SQL/RLS verification (`supabase/tests/diagnostics.sql` and `isolation.sql`) against the linked
+  Cloud database, and Security Advisor review for new Phase 8 findings.
+- No commit or push was performed; Phase 9 was not started.
+
+## Phase 8 Final Verification
+
+Status: PHASE 8 INCOMPLETE — only the owner-run Security Advisor review remains. Cloud SQL/RLS
+verification passed against Cloud after fixing one verified RPC defect; all other verification is
+complete.
+
+### Cloud migration status (verified)
+
+- `npx supabase migration list` — all eight local migrations have matching remote entries, including
+  the Phase 8 diagnostics migration `20260722070351_phase8_diagnostics`.
+- `npx supabase db push --dry-run` — "Remote database is up to date."
+- Conclusion: the Phase 8 Cloud migration is applied. Cloud migration application is removed from the
+  remaining blockers. (Supersedes the earlier "Cloud migration has not been applied" note in the
+  Phase 8 Durable Diagnostics section.)
+
+### Automated validation (this pass)
+
+- `npm run lint` — passed.
+- `npm run typecheck` — passed.
+- `npm run test` — passed: 32 files, 153 tests.
+- `npm run build` — passed (existing ~1,025 kB large-chunk warning only).
+- `git diff --check` — clean (informational LF/CRLF notices only).
+
+### Manual and provider verification (completed by the project owner and attested as passed)
+
+- Routing: `/admin`, `/admin/companies`, `/admin/licences`, `/admin/features`,
+  `/admin/customization-requests`, `/admin/diagnostics`; direct navigation, refresh, Back/Forward,
+  active sidebar state, Company denial, and unauthenticated Admin login.
+- Responsive at 375px, 768px, 1280px, and 1440px: no page-level overflow, accessible mobile
+  navigation, usable tables and cards.
+- Features: Standard Features read-only; Shared Features and Private Customizations display correctly;
+  enable works; disabling requires a controlled reason; lifecycle history preserved; no task content.
+- Diagnostics: Sentry/PostHog configured status, release records, assignment lifecycle, disablement
+  reasons, and customization lifecycle summaries.
+- Providers: sanitized Sentry test event received; explicit PostHog events received; no autocapture;
+  no PostHog session recording; no sensitive task, Company, licence, token, or raw-error content.
+
+### Cloud SQL/RLS verification (run against Cloud)
+
+Connection note: the supplied direct host `db.<ref>.supabase.co` is IPv6-only and unreachable from
+the current environment, so verification used the eu-west-1 IPv4 session pooler with the existing
+`SUPABASE_DB_PASSWORD` via `PGPASSWORD`. No connection string or password was printed, logged, or
+written anywhere. Both test files are transactional (`begin;` … `rollback;`) and were run with
+`ON_ERROR_STOP`.
+
+- `supabase/tests/isolation.sql` — PASSED (exit 0, reached ROLLBACK, 0 errors). Core tables exist;
+  RLS enabled and forced; approved policies and indexes present; anon has no SELECT; authenticated
+  may update only `companies.status`; Company A/B see only their own tasks; cross-Company insert
+  rejected; Platform Admin sees zero task rows, can read Companies/licences, can suspend, cannot
+  update protected Company fields; suspended Company denied all task access; anon denied.
+- `supabase/tests/diagnostics.sql` — FAILED at the assignment RPC path. Assertions up to that point
+  passed (diagnostic tables exist, forced RLS, no `operational_events` table, anon denied, browser
+  SELECT-only grants, feature-request constraints, first-enable insert). Failure:
+
+  > `ERROR: column reference "company_id" is ambiguous` in
+  > `public.set_private_extension_assignment` (SQLSTATE 42702).
+
+- Rollback confirmation (read-only, after the failure): synthetic users = 0, synthetic Companies = 0,
+  temporary `feature_requests` with `requested_outcome = 'Valid Phase 8 request'` = 0. The aborted
+  diagnostics transaction left no synthetic data.
+
+### Verified Phase 8 defect (Cloud RPC)
+
+`public.set_private_extension_assignment` (migration `20260722070351_phase8_diagnostics.sql`) declares
+`returns table (company_id uuid, extension_id uuid, enabled boolean, created_at timestamptz)`, so
+those names are PL/pgSQL OUT variables in scope. The UPDATE branch (lines ~186–190) uses unqualified
+`where company_id = p_company_id and extension_id = p_extension_id`, which collides with those OUT
+variables and raises SQLSTATE 42702. The SELECT (aliased `assignment`) and the INSERT are safe; only
+the UPDATE path fails. Impact: any assignment toggle that updates an existing `company_extensions`
+row (disabling, or re-enabling an existing assignment) fails; only the first-ever INSERT succeeds.
+
+Fix applied (owner-approved): migration
+`20260722120000_fix_set_private_extension_assignment_ambiguous_column.sql` re-creates the function
+with the UPDATE target aliased and the predicate qualified, mirroring the SELECT. Only the UPDATE
+branch changed; all guards, the INSERT, the history write, `security definer`, the fixed
+`search_path`, and the least-privilege grants are preserved.
+
+```sql
+    update public.company_extensions as assignment
+       set enabled = p_enabled
+     where assignment.company_id = p_company_id
+       and assignment.extension_id = p_extension_id
+    returning assignment.* into v_assignment;
+```
+
+The migration was pushed with `npx supabase db push` (tracked, not a manual edit);
+`npx supabase migration list` shows `20260722120000` at local↔remote parity and
+`db push --dry-run` reports "Remote database is up to date."
+
+### Cloud re-verification after the fix
+
+- `supabase/tests/diagnostics.sql` — PASSED (exit 0, ROLLBACK reached, 0 errors, all 18 assertions),
+  including the previously-failing UPDATE / idempotent-re-enable / controlled-disable path.
+- `supabase/tests/isolation.sql` — PASSED (exit 0, ROLLBACK reached, 0 errors, all 27 assertions),
+  including Platform Admin receiving zero task rows.
+- Rollback checks (read-only): synthetic users = 0, synthetic Companies = 0, temporary
+  `feature_requests` = 0.
+- Local automated gates re-run and green: `npm run lint`, `npm run typecheck`,
+  `npm run test` (32 files / 153 tests), `npm run build`, `git diff --check`.
+
+Connection note: verification used the eu-west-1 IPv4 session pooler because the supplied direct
+`db.<ref>.supabase.co` host is IPv6-only and unreachable in this environment; no connection string or
+password was printed, logged, or written anywhere.
+
+### Security Advisor
+
+Not accessible from the current environment (no Supabase advisor tooling is connected). Not fabricated.
+The project owner must inspect Security Advisor and confirm no new Phase 8 findings involving:
+`extension_assignment_events`, `feature_requests`, `release_records`,
+`set_private_extension_assignment`, missing RLS, unsafe grants, mutable/unsafe function
+`search_path`, Company access to Platform Admin diagnostics, and Platform Admin access to tasks. The
+pre-existing leaked-password-protection warning may remain documented separately if it is unrelated
+to Phase 8.
+
+### Verdict
+
+PHASE 8 INCOMPLETE — one item remains: the owner-run Supabase Security Advisor review.
+
+All other verification now passes: the assignment-RPC defect is fixed and applied to Cloud;
+`diagnostics.sql` and `isolation.sql` both pass against Cloud; rollback checks are clean; Platform
+Admin receives zero task rows; and all local automated gates are green. The Security Advisor review
+cannot be run from this environment (no advisor tooling), and per the verification rules it is not
+fabricated.
+
+Sole remaining blocker:
+
+1. Owner-run Supabase Security Advisor review confirming no new Phase 8 findings involving
+   `extension_assignment_events`, `feature_requests`, `release_records`,
+   `set_private_extension_assignment`, missing RLS, unsafe grants, mutable/unsafe function
+   `search_path`, Company access to Platform Admin diagnostics, or Platform Admin access to tasks.
+   (A pre-existing leaked-password-protection warning, if present and unrelated to Phase 8, may remain
+   documented separately.)
+
+Once the owner confirms the Security Advisor shows no new Phase 8 findings, this becomes PHASE 8
+COMPLETE. No commit or push was performed; Phase 9 was not started.
